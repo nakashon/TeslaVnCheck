@@ -60,6 +60,18 @@ Users can generate a Hebrew PNG with a QR code, download it, copy a report link 
 
 The custom domain `testmatesla.com` has not been activated by this code. GitHub Pages remains the deployment target until domain registration, DNS and ownership verification are complete.
 
+## Ownership and mileage
+
+Plate results also query the two official [private-vehicle history resources](https://data.gov.il/dataset/273c5e33-25ab-4980-8522-a2f7ba0bb62d), independently of recalls and of one another:
+
+- Ownership: `bb2355dc-9ec7-4f06-9c3f-3344672171da`. Display every returned ownership-type/date row in month order. Preserve same-month/type rows with different source IDs; do not turn the row count into an authoritative previous-owner or "hand" count. No owner identities are published by this feed.
+- Mileage: `56063a99-8a3e-4ff4-912e-5966c0279bad`. This is **only the latest inspection's cumulative odometer reading**, not annual historical mileage. It has no inspection-date field. The separate active registry's inspection date is labeled separately and is not used to invent a dated mileage series.
+- Display source-provided original registration/type and registration-change flags; these are not accident-history findings.
+- Empty records, null mileage, a genuine zero reading, outages and partial ownership results are distinct states. Pagination is bounded at 1,000 rows with an explicit partial-result notice.
+- Each source has its own cancellation/retry lifecycle and freshness display. Changing vehicles clears and cancels old history; a failed source does not erase other results.
+- Government coverage is active private vehicles from 2017 onward. Ownership data excludes vehicles that previously had another registration number.
+- History is displayed locally and is **not included in the existing shareable report**. Annual inspection archives would require an additional verified source; no historical points are estimated or persisted here.
+
 ## CarAgent integration
 
 `src/lib/govil.ts` reuses CarAgent's public CKAN endpoint, active-resource ID and `mispar_rechev` -> `misgeret` mapping. It is standalone and does not depend on the CarAgent repository.
@@ -67,7 +79,7 @@ The custom domain `testmatesla.com` has not been activated by this code. GitHub 
 - Endpoint: `https://data.gov.il/api/3/action/datastore_search`
 - Resource: `053cea08-09bc-40ec-8f7a-156f0677aff3`
 - Active-vehicle coverage only; inactive or newly registered vehicles may not resolve.
-- Only necessary identification/model fields are requested, not ownership history.
+- The active lookup requests identification/model fields plus current ownership and registration/test dates. Separate history lookups request only their displayed fields, not engine numbers or personal identities.
 - Missing VINs, unmatched plates, upstream outages, timeouts and malformed records are distinct failures.
 - Israeli model codes and registration directives are context, not verified supplier mappings.
 

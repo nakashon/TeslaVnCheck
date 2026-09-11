@@ -11,6 +11,7 @@ import { BatteryExplainer } from './components/BatteryExplainer.tsx'
 import { RecallPanel } from './components/RecallPanel.tsx'
 import type { RecallState } from './components/RecallPanel.tsx'
 import { ShareReport } from './components/ShareReport.tsx'
+import { HistoryPanel } from './components/HistoryPanel.tsx'
 import './App.css'
 
 const errors: Record<string, string> = {
@@ -152,7 +153,7 @@ export default function App() {
     <a className="skip-link" href="#checker">מעבר לבדיקת הרכב</a>
     <header className="site-header">
       <a href="#" className="brand" aria-label="TestMaTesla — עמוד הבית"><span className="brand-mark"><Icon name="scan" size={23} /></span><span dir="ltr">Test<span>Ma</span>Tesla</span></a>
-      <nav aria-label="ניווט ראשי"><a href="#checker">בדיקת רכב</a><a href="#battery-story">הסיפור של הסוללה</a><a href="#recalls">ריקולים</a><a href="#sources">מקורות</a></nav>
+      <nav aria-label="ניווט ראשי"><a href="#checker">בדיקת רכב</a><a href="#battery-story">הסיפור של הסוללה</a><a href="#recalls">ריקולים</a><a href="#history">היסטוריה</a><a href="#sources">מקורות</a></nav>
       <span className="header-caption">מכירים את הטסלה.</span>
     </header>
     <main>
@@ -190,6 +191,7 @@ export default function App() {
 
       {shared && <div className="shared-recall-note"><Icon name="info" size={20} /><div><strong>ריקולים בסיכום ששיתף המשתמש</strong><p>{shared.recall ? `${shared.recall.count}${shared.recall.truncated ? '+' : ''} קריאות במאגר לפי הדוח שנוצר. מועד השאילתה שצוין: ${new Date(shared.recall.checkedAt).toLocaleString('he-IL')}.` : 'לא נכללה בדיקת ריקולים בסיכום.'} זהו מידע מתוך הקישור ולא תוצאה שנשלפה כעת. התחילו בדיקה לפי מספר רישוי לקבלת מידע עדכני.</p></div></div>}
       <RecallPanel state={recalls} hasPlate={Boolean(lookup?.plate)} demo={Boolean(lookup?.demo)} onRetry={retryRecalls} onPlate={() => chooseMode('plate')} />
+      <HistoryPanel plate={lookup?.plate ?? null} vehicle={lookup?.vehicle ?? null} demo={Boolean(lookup?.demo)} onPlate={() => chooseMode('plate')} />
       {result && lookup && !lookup.demo && lookup.source !== 'shared' && <ShareReport key={`${lookup.vin}:${variant}:${replacement}:${recalls.status}:${recalls.status === 'ready' ? recalls.report.checkedAt : ''}`} assessment={result} variant={variant} replacement={replacement} recalls={recalls} />}
       <BatteryExplainer />
       <section className="sources-section" id="sources"><div><span className="eyebrow">מאחורי כל מסקנה יש מקור</span><h2>אפשר לבדוק גם אותנו.</h2><p>תיעוד טסלה, מאגרי מידע רשמיים ודיווחים מקומיים — עם הבחנה בין עובדה, דיווח והשערה.</p><span className="research-date">בסיס המחקר עודכן: <time dateTime={RESEARCH_DATE}>{new Date(`${RESEARCH_DATE}T12:00:00`).toLocaleDateString('he-IL')}</time></span></div><div className="sources-list">{SOURCES.map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer"><span className="source-number">{String(index + 1).padStart(2, '0')}</span><span><strong>{source.title.he}</strong><small>{source.kind.he}</small></span><Icon name="link" size={16} /></a>)}</div></section>

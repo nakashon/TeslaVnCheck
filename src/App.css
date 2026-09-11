@@ -163,6 +163,38 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; 
 .share-controls input { width: 100%; min-width: 0; border: 1px solid #56637a; background: #1a2231; color: #b7c7e1; padding: 10px; border-radius: 5px; font-size: 16px; }
 .share-notice { font-size: 13px; color: #d0e8dc; line-height: 1.8; margin: 15px 0 0; }
 .share-notice:empty { display: none; }
+.history-panel { margin-top: 36px; padding-top: 28px; border-top: 1px solid #dce0e8; }
+.history-panel .section-heading h2 { font-size: 29px; }
+.history-registration { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 22px; }
+.history-registration div { padding: 15px 18px; background: #eeeff3; border-radius: 7px; min-width: 0; }
+.history-registration span { display: block; color: #657185; font-size: 12px; margin-bottom: 9px; }
+.history-registration strong { font-size: 15px; overflow-wrap: anywhere; }
+.history-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.history-card { padding: 28px; background: white; border: 1px solid #dfe3eb; border-radius: 12px; min-width: 0; }
+.history-card h3 { font-size: 25px; margin: 12px 0 22px; }
+.history-card > p, .history-unavailable p { font-size: 13px; line-height: 1.9; color: #647084; }
+.history-metric { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin: 20px 0; }
+.history-metric strong { font-size: clamp(32px, 4vw, 46px); letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.history-metric > span { font-size: 13px; color: #657185; }
+.ownership-timeline { list-style: none; padding: 0; margin: 26px 0; }
+.ownership-timeline li { display: flex; gap: 16px; padding: 0 0 24px; position: relative; }
+.ownership-timeline li:not(:last-child)::before { content: ''; position: absolute; inset-inline-start: 15px; top: 31px; bottom: 0; width: 1px; background: #dce2ed; }
+.timeline-index { width: 31px; height: 31px; border-radius: 50%; background: #eef1f7; color: #586b8a; display: grid; place-items: center; font-size: 12px; flex-shrink: 0; }
+.ownership-timeline strong { display: block; font-size: 16px; margin: 3px 0 8px; overflow-wrap: anywhere; }
+.ownership-timeline div > span { color: #657185; font-size: 12px; }
+.history-note { font-size: 12px; line-height: 1.9; color: #69758a; }
+.history-details { margin: 24px 0 15px; }
+.history-details > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-bottom: 1px solid #e8ebf0; padding: 12px 0; font-size: 12px; }
+.history-details dt { color: #657185; }
+.history-details dd { margin: 0; font-weight: 550; overflow-wrap: anywhere; }
+.annual-mileage-note { border-top: 1px solid #dce2ed; margin-top: 25px; padding-top: 20px; }
+.annual-mileage-note strong { font-size: 15px; }
+.annual-mileage-note p, .history-footer p, .history-prompt p { font-size: 12px; color: #657185; line-height: 1.9; }
+.history-footer { margin-top: 20px; }
+.history-footer a { display: inline-flex; align-items: center; gap: 7px; color: #4d5d76; font-size: 12px; }
+.history-prompt { display: flex; gap: 20px; background: #eeeff3; border-radius: 10px; padding: 25px; }
+.history-prompt > svg { flex-shrink: 0; color: #72829b; }
+.history-prompt h3 { margin-top: 0; font-size: 20px; }
 .battery-story { padding-top: 74px; }
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 25px; margin-bottom: 27px; }
 .section-heading h2 { font-size: 33px; line-height: 1.35; margin: 12px 0 0; letter-spacing: -.5px; }
@@ -230,10 +262,16 @@ footer > span { font-size: 10px; color: #8a93a1; }
   .story-main h3 { font-size: 24px; }
 }
 @media (max-width: 760px) {
+  .history-grid, .history-registration { grid-template-columns: 1fr; }
+  .history-card { padding: 22px; }
+  .history-panel .section-heading h2 { font-size: 25px; }
+  .history-panel .source-chip { display: inline-block; margin-top: 15px; }
+  .history-registration { gap: 9px; }
+  .history-prompt { padding: 20px; gap: 12px; }
   .site-shell { padding: 0 20px; }
   .site-header { height: auto; min-height: 90px; flex-wrap: wrap; gap: 15px; padding: 20px 0 15px; }
   .brand { font-size: 23px; }
-  nav { width: 100%; gap: 21px; font-size: 12px; padding-top: 3px; }
+  nav { width: 100%; gap: 21px; font-size: 12px; padding-top: 3px; flex-wrap: wrap; }
   .hero { grid-template-columns: 1fr; gap: 28px; padding: 37px 0; }
   h1 { font-size: 49px; letter-spacing: -1px; }
   .hero-copy > p { max-width: 430px; }

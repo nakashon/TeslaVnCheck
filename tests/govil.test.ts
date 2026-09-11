@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { lookupPlate, LookupError, ACTIVE_RESOURCE } from '../src/lib/govil.ts'
 
-const record = { mispar_rechev: 12345678, misgeret: 'XP7YGCFR0PB000001', tozeret_nm: 'Tesla Germany', kinuy_mishari: 'MODEL Y', shnat_yitzur: 2023, degem_cd: 163, horaat_rishum: 230432 }
+const record = { mispar_rechev: 12345678, misgeret: 'XP7YGCFR0PB000001', tozeret_nm: 'Tesla Germany', kinuy_mishari: 'MODEL Y', shnat_yitzur: 2023, degem_cd: 163, horaat_rishum: 230432, baalut: 'פרטי', moed_aliya_lakvish: '2023-05', mivchan_acharon_dt: '2026-05-10' }
 const mock = (body: unknown, status = 200): typeof fetch => async () => new Response(JSON.stringify(body), { status })
 const errorCode = (code: string) => (error: unknown) => error instanceof LookupError && error.code === code
 
@@ -13,7 +13,8 @@ test('uses CarAgent resource, VIN mapping, minimal fields and privacy-preserving
     assert.equal(url.searchParams.get('resource_id'), ACTIVE_RESOURCE)
     assert.deepEqual(JSON.parse(url.searchParams.get('filters') ?? ''), { mispar_rechev: 12345678 })
     assert.ok(url.searchParams.get('fields')?.includes('misgeret'))
-    assert.ok(!url.searchParams.get('fields')?.includes('baalut'))
+    assert.ok(url.searchParams.get('fields')?.includes('baalut'))
+    assert.ok(url.searchParams.get('fields')?.includes('mivchan_acharon_dt'))
     assert.equal(options?.credentials, 'omit')
     assert.equal(options?.cache, 'no-store')
     assert.equal(options?.referrerPolicy, 'no-referrer')
@@ -23,6 +24,9 @@ test('uses CarAgent resource, VIN mapping, minimal fields and privacy-preserving
   assert.equal(result.vin, record.misgeret)
   assert.equal(result.modelCode, '163')
   assert.equal(result.directive, '230432')
+  assert.equal(result.currentOwnership, 'פרטי')
+  assert.equal(result.firstRoadDate, '2023-05')
+  assert.equal(result.lastTestDate, '2026-05-10')
 })
 test('empty results differ from upstream failures', async () => {
   await assert.rejects(lookupPlate('12345678', mock({ success: true, result: { records: [] } })), errorCode('plate_not_found'))

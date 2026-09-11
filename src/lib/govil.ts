@@ -3,7 +3,7 @@ import { normalizePlate, normalizeVin, InputError } from './checker.ts'
 // Same CKAN resource and plate-to-misgeret mapping used by CarAgent/src/enrich/govil.ts.
 export const ACTIVE_RESOURCE = '053cea08-09bc-40ec-8f7a-156f0677aff3'
 export const GOV_API = 'https://data.gov.il/api/3/action/datastore_search'
-const fields = ['mispar_rechev', 'misgeret', 'tozeret_nm', 'degem_nm', 'degem_cd', 'tozeret_cd', 'ramat_gimur', 'shnat_yitzur', 'horaat_rishum', 'kinuy_mishari']
+const fields = ['mispar_rechev', 'misgeret', 'tozeret_nm', 'degem_nm', 'degem_cd', 'tozeret_cd', 'ramat_gimur', 'shnat_yitzur', 'horaat_rishum', 'kinuy_mishari', 'baalut', 'moed_aliya_lakvish', 'mivchan_acharon_dt']
 
 export class LookupError extends Error {
   code: string
@@ -24,6 +24,9 @@ export interface Vehicle {
   year: number | null
   modelCode: string | null
   directive: string | null
+  currentOwnership: string | null
+  firstRoadDate: string | null
+  lastTestDate: string | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -32,6 +35,37 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : typeof value === 'number' ? String(value) : null
+}
+
+export async function loadGovResult(url: URL, request: typeof fetch, signal: AbortSignal): Promise<Record<string, unknown>> {
+  try {
+    signal.throwIfAborted()
+    const response = await request(url, {
+      signal, headers: { accept: 'application/json' },
+      credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer',
+    })
+    if (!response.ok) throw new LookupError('upstream_unavailable', 502)
+    const body: unknown = await response.json()
+    signal.throwIfAborted()
+    if (!isRecord(body) || body.success !== true || !isRecord(body.result)) throw new LookupError('upstream_invalid', 502)
+    return body.result
+  } catch (error) {
+    if (signal.aborted || error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name)) throw new LookupError('upstream_timeout', 504)
+    if (error instanceof TypeError) throw new LookupError('upstream_unavailable', 502)
+    if (error instanceof SyntaxError) throw new LookupError('upstream_invalid', 502)
+    throw error
+  }
+}
+
+export async function resourceUpdatedAt(id: string, request: typeof fetch, signal: AbortSignal): Promise<string | undefined> {
+  const url = new URL('https://data.gov.il/api/3/action/resource_show')
+  url.searchParams.set('id', id)
+  const metadata = await loadGovResult(url, request, signal)
+  const updated = metadata.last_modified
+  if (metadata.id !== id || updated !== undefined && updated !== null && (typeof updated !== 'string'
+    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/.test(updated)
+    || !Number.isFinite(Date.parse(updated)))) throw new LookupError('upstream_invalid', 502)
+  return typeof updated === 'string' ? updated : undefined
 }
 
 export async function lookupPlate(input: string, request: typeof fetch = fetch, signal?: AbortSignal): Promise<Vehicle> {
@@ -85,5 +119,7 @@ export async function lookupPlate(input: string, request: typeof fetch = fetch, 
     vin, make: text(record.tozeret_nm), model: text(record.kinuy_mishari) ?? text(record.degem_nm),
     trim: text(record.ramat_gimur), year: Number.isInteger(year) && year > 1900 ? year : null,
     modelCode: text(record.degem_cd), directive: text(record.horaat_rishum),
+    currentOwnership: text(record.baalut), firstRoadDate: text(record.moed_aliya_lakvish),
+    lastTestDate: text(record.mivchan_acharon_dt),
   }
 }
