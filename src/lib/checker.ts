@@ -26,6 +26,16 @@ export const SOURCES = [
     url: 'https://www.tesla.com/ownersmanual/2020_2024_modely/en_eu/GUID-9A3F0F72-71F4-433D-B68B-0A472A9359DF.html',
     kind: { en: 'Manufacturer documentation', he: 'תיעוד יצרן' },
   },
+  {
+    title: { en: 'Taiwan: Tesla response, July 2026', he: 'תגובת טסלה בטייוואן, יולי 2026' },
+    url: 'https://www.ctee.com.tw/news/20260728701950-430503',
+    kind: { en: 'Reporting of the manufacturer response', he: 'דיווח עיתונאי על תגובת היצרן' },
+  },
+  {
+    title: { en: 'The sealing hypothesis: what is known', he: 'השערת האיטום: מה ידוע ומה משוער' },
+    url: 'https://technews.tw/2026/07/10/tesla-modely-rwd-battery-issue/',
+    kind: { en: 'Analysis explicitly labeled as a hypothesis', he: 'ניתוח שמוצג במפורש כהשערה' },
+  },
 ] satisfies { title: Localized; url: string; kind: Localized }[]
 
 export class InputError extends Error {
@@ -95,6 +105,12 @@ export interface Assessment {
   criteria: { id: 'model' | 'factory' | 'year' | 'drive'; match: boolean | null }[]
   currentPack: 'original-reported' | 'replacement-unknown' | 'unknown'
   reasons: string[]
+  profileMatch: { matched: number; different: number; unknown: number; total: number }
+}
+
+export function assessmentTone(status: Status): 'attention' | 'clear' | 'uncertain' {
+  if (status === 'candidate' || status === 'document-supported') return 'attention'
+  return status === 'outside' ? 'clear' : 'uncertain'
 }
 
 export function assess(input: string, variant: Variant = 'unknown', replacement: Replacement = 'unknown'): Assessment {
@@ -123,6 +139,12 @@ export function assess(input: string, variant: Variant = 'unknown', replacement:
     // No labeled, representative fleet dataset exists to calibrate a probability.
     probability: null,
     criteria,
+    profileMatch: {
+      matched: criteria.filter((item) => item.match === true).length,
+      different: criteria.filter((item) => item.match === false).length,
+      unknown: criteria.filter((item) => item.match === null).length,
+      total: criteria.length,
+    },
     currentPack: replacement === 'no' ? 'original-reported' : replacement === 'yes' ? 'replacement-unknown' : 'unknown',
     reasons,
   }

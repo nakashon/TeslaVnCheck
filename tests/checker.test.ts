@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { assess, decodeVin, normalizePlate, normalizeVin, InputError } from '../src/lib/checker.ts'
+import { assess, assessmentTone, decodeVin, normalizePlate, normalizeVin, InputError } from '../src/lib/checker.ts'
 
 const berlin = 'XP7YGCFR0PB000001'
 const shanghai = 'LRWYGCFR0PC000001'
@@ -62,4 +62,17 @@ test('current pack depends on explicit owner-reported history, never assumed ori
   assert.equal(assess(berlin).currentPack, 'unknown')
   assert.equal(assess(berlin, 'unknown', 'no').currentPack, 'original-reported')
   assert.equal(assess(berlin, 'unknown', 'yes').currentPack, 'replacement-unknown')
+})
+test('profile matching counts known matches, differences and missing facts separately', () => {
+  assert.deepEqual(assess(berlin).profileMatch, { matched: 4, different: 0, unknown: 0, total: 4 })
+  assert.deepEqual(assess(shanghai).profileMatch, { matched: 3, different: 1, unknown: 0, total: 4 })
+  assert.deepEqual(assess(berlin.slice(0, 7) + 'Z' + berlin.slice(8)).profileMatch, { matched: 3, different: 0, unknown: 1, total: 4 })
+  assert.deepEqual(assess('WVWZZZ1KZAW000001').profileMatch, { matched: 0, different: 0, unknown: 4, total: 4 })
+})
+test('outcome colors are distinct and do not use a green theme for target profiles', () => {
+  assert.equal(assessmentTone('candidate'), 'attention')
+  assert.equal(assessmentTone('document-supported'), 'attention')
+  assert.equal(assessmentTone('outside'), 'clear')
+  assert.equal(assessmentTone('unknown'), 'uncertain')
+  assert.equal(assessmentTone('conflicting'), 'uncertain')
 })

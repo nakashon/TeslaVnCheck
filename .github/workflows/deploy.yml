@@ -1,4 +1,4 @@
-name: Deploy Battery Atlas
+name: Deploy TestMaTesla
 
 on:
   push:

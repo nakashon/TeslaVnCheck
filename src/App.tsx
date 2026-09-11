@@ -1,79 +1,74 @@
 import { useEffect, useRef, useState } from 'react'
 import { assess, InputError, normalizePlate, normalizeVin, RESEARCH_DATE, SOURCES } from './lib/checker.ts'
-import type { Language, Localized, Replacement, Status, Variant } from './lib/checker.ts'
+import type { Replacement, Variant } from './lib/checker.ts'
 import { lookupPlate, LookupError } from './lib/govil.ts'
+import type { Vehicle } from './lib/govil.ts'
+import { lookupRecalls } from './lib/recalls.ts'
+import { readInitialReport } from './lib/share.ts'
+import { Icon } from './components/Icon.tsx'
+import { BatteryResult } from './components/BatteryResult.tsx'
+import { BatteryExplainer } from './components/BatteryExplainer.tsx'
+import { RecallPanel } from './components/RecallPanel.tsx'
+import type { RecallState } from './components/RecallPanel.tsx'
+import { ShareReport } from './components/ShareReport.tsx'
 import './App.css'
 
-const statusText: Record<Status, { title: Localized; description: Localized }> = {
-  candidate: {
-    title: { en: 'Matches the reported profile', he: 'תואם למאפייני הדגם המדווח' },
-    description: { en: 'The VIN matches the Berlin-built, 2023–2024 Model Y RWD profile. It does not identify the battery supplier or a defective batch.', he: 'ה-VIN תואם למודל Y בהנעה אחורית, ייצור ברלין בשנים 2023–2024. הוא לא מזהה את ספק הסוללה או אצווה פגומה.' },
-  },
-  outside: {
-    title: { en: 'Outside this reported profile', he: 'מחוץ למאפייני הדגם המדווח' },
-    description: { en: 'At least one known vehicle characteristic differs from the profile studied here. This is not a clean bill of health or proof of a different installed battery.', he: 'לפחות מאפיין ידוע אחד שונה מהדגם שנחקר כאן. זו אינה קביעה שהרכב תקין או הוכחה לזהות הסוללה המותקנת.' },
-  },
-  'document-supported': {
-    title: { en: 'BYD configuration supported', he: 'יש תמיכה בזיהוי תצורת BYD' },
-    description: { en: 'The VIN profile and the Y7CR variant you entered agree with the documented BYD original configuration. Your document has not been independently authenticated.', he: 'מאפייני ה-VIN וקוד Y7CR שהזנת תואמים לתצורת BYD המקורית המתועדת. המסמך שלך לא אומת באופן עצמאי.' },
-  },
-  conflicting: {
-    title: { en: 'The evidence needs a closer look', he: 'המידע דורש בירור נוסף' },
-    description: { en: 'The identifiers or document details do not agree. Ask Tesla to confirm the original configuration and current pack; do not rely on a supplier guess.', he: 'המזהים או פרטי המסמך אינם מתיישבים. יש לבקש מטסלה לאשר את התצורה המקורית ואת המארז הנוכחי, ולא להסתמך על ניחוש.' },
-  },
-  unknown: {
-    title: { en: 'Not enough information yet', he: 'עדיין אין מספיק מידע' },
-    description: { en: 'This VIN contains an unsupported or unresolved configuration. We cannot reliably classify it from the documentation currently available.', he: 'ה-VIN מציג תצורה שאינה נתמכת או שאינה ברורה. אין אפשרות לסווג אותה באופן אמין לפי התיעוד הקיים.' },
-  },
+const errors: Record<string, string> = {
+  invalid_vin: 'בדקו את מספר השלדה: נדרשים 17 תווים, ללא האותיות I, O או Q.',
+  invalid_plate: 'הזינו מספר רישוי ישראלי בן 5–8 ספרות. אפשר גם עם רווחים או מקפים.',
+  plate_not_found: 'הרכב לא נמצא במאגר הרכבים הפעילים. אפשר לבדוק לפי VIN שמופיע ברישיון או ברכב.',
+  vin_unavailable: 'נמצאה רשומת רכב, אך מספר השלדה חסר או לא תקין. הזינו VIN ישירות.',
+  upstream_timeout: 'מאגר משרד התחבורה לא הגיב בזמן. נסו שוב, או הזינו VIN לבדיקה מקומית.',
+  upstream_unavailable: 'מאגר משרד התחבורה אינו זמין כרגע. אפשר לנסות שוב או לעבור לבדיקה לפי VIN.',
+  upstream_invalid: 'התקבלה רשומה שלא ניתן לפענח באופן אמין. נסו להזין את ה-VIN מהרכב.',
+  internal_error: 'לא הצלחנו להשלים את הבדיקה. נסו שוב.',
 }
-
-const errorText: Record<string, Localized> = {
-  invalid_vin: { en: 'Enter 17 letters and digits. VINs do not contain I, O or Q.', he: 'יש להזין 17 אותיות וספרות. VIN אינו כולל I, O או Q.' },
-  invalid_plate: { en: 'Enter an Israeli plate with 5–8 digits. Spaces and hyphens are allowed.', he: 'יש להזין מספר רישוי ישראלי בן 5–8 ספרות. אפשר להשתמש ברווחים ובמקפים.' },
-  plate_not_found: { en: 'No matching vehicle in the active registry. An inactive or recently registered vehicle may be missing. Try its VIN instead.', he: 'לא נמצא רכב במאגר הפעיל. רכב שירד מהכביש או נרשם לאחרונה עשוי להיות חסר. אפשר להזין VIN במקום.' },
-  vin_unavailable: { en: 'A vehicle record was found, but its VIN is missing or unusable. Enter the VIN from the car or registration document.', he: 'נמצאה רשומת רכב, אבל ה-VIN חסר או לא תקין. יש להזין אותו מהרכב או מרישיון הרכב.' },
-  upstream_timeout: { en: 'The government registry took too long to respond. Try again or enter the VIN directly.', he: 'מאגר משרד התחבורה לא הגיב בזמן. אפשר לנסות שוב או להזין VIN ישירות.' },
-  upstream_unavailable: { en: 'The government registry is temporarily unavailable. No vehicle result was inferred. Try again or use a VIN.', he: 'מאגר משרד התחבורה אינו זמין כרגע. לא הוסק מידע על הרכב. אפשר לנסות שוב או להזין VIN.' },
-  upstream_invalid: { en: 'The registry returned an unexpected record. We could not reliably resolve this plate. Try a VIN instead.', he: 'המאגר החזיר רשומה בלתי צפויה. לא ניתן לזהות את הרכב באופן אמין. אפשר להזין VIN במקום.' },
-  rate_limited: { en: 'Too many lookups. Please wait a minute before trying again.', he: 'בוצעו יותר מדי חיפושים. יש להמתין דקה ולנסות שוב.' },
-  network_error: { en: 'Could not reach the lookup service. Check your connection and try again.', he: 'לא ניתן להתחבר לשירות. יש לבדוק את החיבור ולנסות שוב.' },
-  invalid_request: { en: 'The request was not accepted. Check the identifier and try again.', he: 'הבקשה לא התקבלה. יש לבדוק את המזהה ולנסות שוב.' },
-  internal_error: { en: 'The lookup could not be completed. Please try again.', he: 'לא ניתן להשלים את החיפוש. יש לנסות שוב.' },
-}
-
-function Icon({ name, size = 20 }: { name: 'arrow' | 'shield' | 'search' | 'bolt' | 'check' | 'plus'; size?: number }) {
-  const paths = {
-    arrow: 'M5 12h14m-6-6 6 6-6 6',
-    shield: 'M12 3 4 6v6c0 4 8 9 8 9s8-5 8-9V6l-8-3Zm-4 9 3 3 5-6',
-    search: 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
-    bolt: 'm13 2-9 12h7l-1 8 10-13h-8l1-7Z',
-    check: 'm5 12 4 4L19 6',
-    plus: 'M12 5v14M5 12h14',
-  }
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>
-}
-
-type Lookup = { vin: string; demo: boolean; source: 'vin' | 'plate'; make: string | null; modelCode: string | null; directive: string | null }
+type Lookup = { vin: string; plate: string | null; demo: boolean; vehicle: Vehicle | null; source: 'vin' | 'plate' | 'shared' }
+const factoryNames: Record<string, string> = { Berlin: 'ברלין, גרמניה', Shanghai: 'שנגחאי, סין', Fremont: 'פרימונט, ארה״ב', Austin: 'אוסטין, ארה״ב' }
+const examples = [
+  { name: 'תואם לקבוצה', vin: 'XP7YGCFR0PB000001', tone: 'attention' },
+  { name: 'מחוץ לקבוצה', vin: 'LRWYGCFR0PC000001', tone: 'clear' },
+  { name: 'מידע חלקי', vin: 'XP7YGCFZ0PB000001', tone: 'uncertain' },
+]
 
 export default function App() {
-  const [lang, setLang] = useState<Language>(() => navigator.language.startsWith('he') ? 'he' : 'en')
-  const [mode, setMode] = useState<'vin' | 'plate'>('vin')
+  const [initial] = useState(() => readInitialReport(window.location.hash))
+  const [shared, setShared] = useState(initial.report)
+  const [invalidShare, setInvalidShare] = useState(initial.invalid)
+  const [mode, setMode] = useState<'vin' | 'plate'>('plate')
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lookup, setLookup] = useState<Lookup | null>(null)
-  const [variant, setVariant] = useState<Variant>('unknown')
-  const [replacement, setReplacement] = useState<Replacement>('unknown')
+  const [lookup, setLookup] = useState<Lookup | null>(() => initial.report
+    ? { vin: initial.report.prefix + '000000', plate: null, demo: false, vehicle: null, source: 'shared' } : null)
+  const [variant, setVariant] = useState<Variant>(initial.report?.variant ?? 'unknown')
+  const [replacement, setReplacement] = useState<Replacement>(initial.report?.replacement ?? 'unknown')
+  const [recalls, setRecalls] = useState<RecallState>({ status: 'idle' })
   const request = useRef<AbortController | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const resultRef = useRef<HTMLElement | null>(null)
-  const t = (en: string, he: string) => lang === 'en' ? en : he
   const result = lookup ? assess(lookup.vin, variant, replacement) : null
 
-  useEffect(() => {
-    document.documentElement.lang = lang
-    document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr'
-  }, [lang])
   useEffect(() => () => request.current?.abort(), [])
+  useEffect(() => {
+    function openSharedLink() {
+      if (!window.location.hash.startsWith('#report=')) return
+      const next = readInitialReport(window.location.hash)
+      request.current?.abort()
+      request.current = null
+      setBusy(false)
+      setError(null)
+      setInput('')
+      setShared(next.report)
+      setInvalidShare(next.invalid)
+      setLookup(next.report ? { vin: next.report.prefix + '000000', plate: null, demo: false, vehicle: null, source: 'shared' } : null)
+      setVariant(next.report?.variant ?? 'unknown')
+      setReplacement(next.report?.replacement ?? 'unknown')
+      setRecalls({ status: 'idle' })
+    }
+    window.addEventListener('hashchange', openSharedLink)
+    return () => window.removeEventListener('hashchange', openSharedLink)
+  }, [])
 
   function reset() {
     request.current?.abort()
@@ -81,42 +76,64 @@ export default function App() {
     setBusy(false)
     setError(null)
     setLookup(null)
+    setShared(null)
+    setInvalidShare(false)
     setVariant('unknown')
     setReplacement('unknown')
+    setRecalls({ status: 'idle' })
+    if (window.location.hash.startsWith('#report=')) window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  }
+
+  function chooseMode(value: 'vin' | 'plate') {
+    reset()
+    setMode(value)
+    setInput('')
+    inputRef.current?.focus()
+  }
+
+  async function refreshRecalls(plate: string, controller: AbortController) {
+    setRecalls({ status: 'loading' })
+    try {
+      const report = await lookupRecalls(plate, fetch, controller.signal)
+      if (request.current === controller && !controller.signal.aborted) setRecalls({ status: 'ready', report })
+    } catch (err) {
+      if (request.current !== controller || controller.signal.aborted) return
+      if (!(err instanceof LookupError)) console.error('Recall lookup failed:', err instanceof Error ? err.name : 'UnknownError')
+      setRecalls({ status: 'error', code: err instanceof LookupError ? err.code : 'internal_error' })
+    }
+  }
+
+  function retryRecalls() {
+    if (!lookup?.plate) return
+    request.current?.abort()
+    const controller = new AbortController()
+    request.current = controller
+    void refreshRecalls(lookup.plate, controller)
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    request.current?.abort()
+    reset()
     const controller = new AbortController()
     request.current = controller
-    setError(null)
-    setLookup(null)
-    setVariant('unknown')
-    setReplacement('unknown')
     try {
       const value = mode === 'vin' ? normalizeVin(input) : normalizePlate(input)
       setBusy(true)
       if (mode === 'vin') {
-        // VIN decoding stays on the device; only a plate lookup contacts the server.
-        setLookup({ vin: value, demo: false, source: 'vin', make: null, modelCode: null, directive: null })
+        setLookup({ vin: value, plate: null, demo: false, vehicle: null, source: 'vin' })
       } else {
         const vehicle = await lookupPlate(value, fetch, controller.signal)
         if (controller.signal.aborted) return
-        setLookup({
-          vin: vehicle.vin, source: 'plate', demo: false,
-          make: vehicle.make, modelCode: vehicle.modelCode, directive: vehicle.directive,
-        })
+        setLookup({ vin: vehicle.vin, plate: value, demo: false, vehicle, source: 'plate' })
+        // Recall outages must never remove an already available battery assessment.
+        void refreshRecalls(value, controller)
       }
-      requestAnimationFrame(() => resultRef.current?.focus({ preventScroll: true }))
+      requestAnimationFrame(() => resultRef.current?.focus())
     } catch (err) {
       if (controller.signal.aborted) return
-      if (err instanceof InputError) setError(err.code)
-      else if (err instanceof LookupError) setError(err.code)
-      else if (err instanceof TypeError) setError('network_error')
-      else if (err instanceof SyntaxError) setError('upstream_invalid')
+      if (err instanceof InputError || err instanceof LookupError) setError(err.code)
       else {
-        console.error('Unexpected lookup UI failure', err instanceof Error ? err.name : 'UnknownError')
+        console.error('Vehicle lookup failed:', err instanceof Error ? err.name : 'UnknownError')
         setError('internal_error')
       }
     } finally {
@@ -124,106 +141,60 @@ export default function App() {
     }
   }
 
-  function demo() {
+  function example(vin: string) {
     reset()
     setMode('vin')
-    setInput('XP7YGCFR0PB000001')
-    setLookup({ vin: 'XP7YGCFR0PB000001', demo: true, source: 'vin', make: null, modelCode: null, directive: null })
+    setInput(vin)
+    setLookup({ vin, plate: null, demo: true, vehicle: null, source: 'vin' })
   }
 
-  const criteriaLabels = {
-    model: t('Model Y', 'מודל Y'), factory: t('Built in Berlin', 'ייצור ברלין'),
-    year: t('Built in 2023–2024', 'ייצור בשנים 2023–2024'), drive: t('Rear-wheel drive', 'הנעה אחורית'),
-  }
+  return <div className="site-shell">
+    <a className="skip-link" href="#checker">מעבר לבדיקת הרכב</a>
+    <header className="site-header">
+      <a href="#" className="brand" aria-label="TestMaTesla — עמוד הבית"><span className="brand-mark"><Icon name="scan" size={23} /></span><span dir="ltr">Test<span>Ma</span>Tesla</span></a>
+      <nav aria-label="ניווט ראשי"><a href="#checker">בדיקת רכב</a><a href="#battery-story">הסיפור של הסוללה</a><a href="#recalls">ריקולים</a><a href="#sources">מקורות</a></nav>
+      <span className="header-caption">מכירים את הטסלה.</span>
+    </header>
+    <main>
+      {invalidShare && <div className="error-message" role="alert">הקישור לדוח אינו תקין. אפשר להתחיל בדיקה חדשה לפי מספר רישוי או VIN.</div>}
+      {shared && <aside className="shared-banner"><Icon name="link" size={23} /><div><strong>מישהו שיתף איתכם את דוח הטסלה שלו.</strong><p>סיכום שנוצר ב־{new Date(shared.createdAt).toLocaleDateString('he-IL')}. זהו דוח משתמש, לא בדיקה חיה או אימות מטעם טסלה.</p></div><button className="primary-button" onClick={() => chooseMode('plate')}>בדקו גם את הרכב שלכם <Icon name="arrow" size={16} /></button></aside>}
+      {!shared && <section className="hero">
+        <div className="hero-copy"><span className="eyebrow"><span className="tiny-line" />לנהגים. לקונים. לטסלה שלכם.</span><h1>הטסלה שלך.<br /><span>התמונה המלאה.</span></h1><p>מזינים מספר רכב, מזהים את מאפייני הסוללה ובודקים ריקולים. לפני הקנייה — ולאורך הדרך.</p><a href="#checker" className="hero-link">מתחילים בבדיקה <Icon name="arrow" size={18} /></a><div className="hero-trust"><span><Icon name="shield" size={14} />ללא הרשמה</span><span>ללא שמירת מזהי הרכב</span><span>מקורות גלויים</span></div></div>
+        <div className="hero-visual" aria-hidden="true"><div className="visual-top"><span>MODEL Y / BATTERY PROFILE</span><Icon name="scan" size={21} /></div><div className="car-illustration"><svg viewBox="0 0 520 230" fill="none"><ellipse cx="259" cy="193" rx="214" ry="15" fill="#000" opacity=".27" /><path d="M39 158c2-23 19-41 55-49l76-49c35-19 105-20 148-2l73 43 68 15c20 5 33 19 36 42l-6 20h-30c-3-27-17-43-41-43s-42 20-43 43H164c-3-26-20-43-43-43-24 0-40 18-44 43H46l-7-20Z" fill="url(#body)" stroke="#66717d" strokeWidth="1.5" /><path d="m133 102 48-34c30-14 92-15 126-1l55 34H133Z" fill="#1d2632" stroke="#86909d" /><path d="m254 59 1 44m17 7v56m-94-54-3 54m106-47h18" stroke="#7f8792" strokeWidth="1.4" /><path d="m426 116 43 11m-415 9 25-6" stroke="#f4b5bb" strokeWidth="5" strokeLinecap="round" /><circle cx="121" cy="179" r="29" fill="#111720" stroke="#697382" strokeWidth="5" /><circle cx="121" cy="179" r="17" fill="#697382" /><circle cx="418" cy="179" r="29" fill="#111720" stroke="#697382" strokeWidth="5" /><circle cx="418" cy="179" r="17" fill="#697382" /><path d="M178 187h173" stroke="#ed4e62" strokeWidth="7" strokeLinecap="round" /><defs><linearGradient id="body" x1="240" y1="55" x2="240" y2="180" gradientUnits="userSpaceOnUse"><stop stopColor="#c6cbd3" /><stop offset=".45" stopColor="#9aa3b0" /><stop offset="1" stopColor="#454f5e" /></linearGradient></defs></svg></div><div className="visual-bottom"><span className="visual-caption">כעת במיקוד</span><strong>מארז BYD במודל Y</strong><span>ברלין · הנעה אחורית · 2023–2024</span></div><span className="illustration-note">המחשה של קבוצת הדגם, לא תוצאת בדיקה</span></div>
+      </section>}
 
-  return (
-    <div className="site-shell">
-      <a className="skip-link" href="#checker">{t('Skip to checker', 'מעבר לבדיקה')}</a>
-      <header className="site-header">
-        <a className="brand" href="#" aria-label="Battery Atlas"><span className="brand-icon"><Icon name="bolt" size={22} /></span><span>Battery<span className="brand-light">Atlas</span><span className="beta">BETA</span></span></a>
-        <nav aria-label={t('Main navigation', 'ניווט ראשי')}>
-          <a href="#methodology">{t('How it works', 'איך זה עובד')}</a>
-          <a href="#research">{t('The research', 'המחקר')}</a>
-          <button className="language-button" onClick={() => setLang(lang === 'en' ? 'he' : 'en')} aria-label={t('Switch to Hebrew', 'מעבר לאנגלית')}>{lang === 'en' ? 'עברית' : 'English'} <span aria-hidden="true">↗</span></button>
-        </nav>
-      </header>
-
-      <main>
-        <section className="hero">
-          <div className="eyebrow"><span className="status-dot" /> {t('INDEPENDENT TESLA BATTERY RESEARCH', 'מחקר עצמאי על סוללות טסלה')}</div>
-          <h1>{t('Know your battery.', 'להכיר את הסוללה שלך.')}<br /><span>{t('Not the rumors.', 'לא את השמועות.')}</span></h1>
-          <p className="hero-description">{t('Does your Model Y match the BYD battery configuration in recent reports? Start with a VIN or an Israeli license plate. We’ll show what the evidence can—and can’t—tell you.', 'האם המודל Y שלך תואם לתצורת סוללת BYD שעלתה בדיווחים? מתחילים עם VIN או מספר רישוי ישראלי, ומגלים מה אפשר לדעת לפי הראיות — ומה עדיין לא.')}</p>
-          <div className="hero-pills"><span><Icon name="shield" size={15} /> {t('No sign-up. No saved identifiers.', 'ללא הרשמה. המזהים לא נשמרים.')}</span><span className="divider-dot">·</span><span>{t('Built on cited sources', 'מבוסס על מקורות מצוטטים')}</span></div>
+      <section className={`workspace ${shared ? 'shared-workspace' : ''}`} id="checker" aria-label="בדיקת הרכב">
+        <div className="input-card">
+          <div className="card-heading"><span className="mini-icon"><Icon name="search" /></span><span className="section-index">מתחילים כאן</span></div>
+          <h2>איזו טסלה בודקים?</h2><p className="card-subtitle">הרכב שלכם, או זה שסימנתם לקנייה.</p>
+          <div className="input-tabs" role="group" aria-label="שיטת בדיקה"><button aria-pressed={mode === 'plate'} onClick={() => chooseMode('plate')}><span className="il-tag" dir="ltr">IL</span>מספר רישוי</button><button aria-pressed={mode === 'vin'} onClick={() => chooseMode('vin')}>מספר שלדה (VIN)</button></div>
+          <form onSubmit={submit} noValidate>
+            <label htmlFor="identifier">{mode === 'plate' ? 'מספר הרישוי הישראלי' : 'מספר השלדה של הרכב'}</label>
+            <div className={`identifier-wrap ${mode === 'plate' ? 'plate-mode' : ''}`}>{mode === 'plate' && <span className="plate-country" aria-hidden="true">IL</span>}<input ref={inputRef} id="identifier" dir="ltr" value={input} onChange={(event) => { reset(); setInput(event.target.value) }} inputMode={mode === 'plate' ? 'numeric' : 'text'} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={mode === 'plate' ? 15 : 30} placeholder={mode === 'plate' ? '123-45-678' : '17 תווים של ה-VIN'} aria-invalid={Boolean(error)} aria-describedby="input-help lookup-error" /></div>
+            <p className="field-help" id="input-help">{mode === 'plate' ? 'נשלוף את פרטי הרכב ונבדוק ריקולים במאגרים הרשמיים.' : 'מופיע ברישיון הרכב ובמסך טסלה: פקדים ← תוכנה.'}</p>
+            <div id="lookup-error" role="alert">{error && <p className="error-message">{errors[error] ?? errors.internal_error}</p>}</div>
+            <button type="submit" className="primary-button lookup-button" disabled={busy || !input.trim()}>{busy ? <><span className="spinner" />מזהים את הרכב…</> : <>בדקו את הטסלה <Icon name="arrow" size={18} /></>}</button>
+          </form>
+          <details className="examples"><summary>רק רוצים לראות איך זה עובד?</summary><div>{examples.map((item) => <button key={item.vin} onClick={() => example(item.vin)}><span className="sample-dot" data-tone={item.tone} />{item.name}</button>)}</div><p>דוגמאות פיקטיביות, ללא פנייה למאגר הרכבים.</p></details>
+          <div className="input-privacy"><Icon name="shield" size={17} /><p>האתר לא שומר מספרי רכב. בדיקת VIN מקומית; חיפוש רישוי נשלח ישירות למשרד התחבורה.</p></div>
+        </div>
+        <section className="assessment-area" tabIndex={-1} ref={resultRef} aria-label="תוצאת בדיקת הרכב" aria-live="polite" aria-busy={busy}>
+          {result && lookup ? <>
+            <div className="vehicle-strip"><div><span className="eyebrow">{lookup.demo ? 'דוגמה פיקטיבית' : lookup.source === 'shared' ? 'סיכום ששיתף משתמש' : lookup.source === 'plate' ? 'זוהה לפי מאגר משרד התחבורה' : 'פרטים מפענוח VIN'}</span><h2><bdi>{result.decoded.model ?? lookup.vehicle?.model ?? 'פרטי הרכב'}</bdi><span>{result.decoded.year ?? ''}</span></h2></div><Icon name="car" size={38} /></div>
+            <div className="vehicle-facts"><div><span>מפעל</span><strong>{factoryNames[result.decoded.factory ?? ''] ?? 'לא זוהה'}</strong></div><div><span>הנעה</span><strong>{result.decoded.drive === 'rwd' ? 'אחורית' : result.decoded.drive === 'awd' ? 'כפולה' : 'נדרש מידע נוסף'}</strong></div><div><span>זהות הסוללה</span><strong>{replacement === 'yes' ? 'מארז חלופי — נדרש זיהוי' : result.status === 'conflicting' ? 'פרטים סותרים — נדרש בירור' : result.status === 'document-supported' ? 'BYD לפי הקוד שהוזן' : 'נדרש מסמך זיהוי'}</strong></div></div>
+            <BatteryResult key={`${lookup.vin}-${lookup.source}`} result={result} variant={variant} replacement={replacement} setVariant={setVariant} setReplacement={setReplacement} readOnly={lookup.source === 'shared'} />
+            {lookup.vehicle && <details className="registration-details"><summary>פרטי הרישום</summary><p>יצרן במאגר: {lookup.vehicle.make ?? 'לא צוין'} · קוד דגם: {lookup.vehicle.modelCode ?? 'לא צוין'} · הוראת רישום: {lookup.vehicle.directive ?? 'לא צוינה'}</p><p>מספרים אלה מוצגים לזיהוי הרשומה; הם אינם מיפוי מאומת לספק סוללה.</p></details>}
+          </> : <div className="empty-assessment"><div className="empty-topline"><span className="eyebrow">ממספר רכב לתמונה ברורה</span><Icon name="scan" size={26} /></div><h2>לא עוד ניחוש<br />לפי שנת הדגם.</h2><p>משווים ארבעה מאפיינים לקבוצת הדגם שבמוקד דיווחי הסוללה, ומראים מה תואם ומה שונה.</p><div className="preview-criteria"><span>דגם</span><span>מפעל</span><span>שנת ייצור</span><span>הנעה</span></div><div className="result-legend"><span><i data-tone="attention" />תואם לקבוצה</span><span><i data-tone="clear" />מחוץ לקבוצה</span><span><i data-tone="uncertain" />נדרש בירור</span></div><a href="#battery-story" className="text-link">מהי קבוצת הדגם שנבדקת? <Icon name="arrow" size={15} /></a></div>}
         </section>
+      </section>
 
-        <section className="workspace" id="checker" aria-label={t('Battery configuration checker', 'בדיקת תצורת הסוללה')}>
-          <div className="input-card">
-            <div className="section-kicker"><span>01</span> {t('YOUR VEHICLE', 'הרכב שלך')}</div>
-            <h2>{t('Let’s start with your car.', 'מתחילים מהרכב שלך.')}</h2>
-            <p className="card-subtitle">{t('For your car—or the one you’re about to buy.', 'לרכב שלך — או לרכב שמתכננים לקנות.')}</p>
-            <div className="input-tabs" role="group" aria-label={t('Lookup method', 'שיטת חיפוש')}>
-              <button aria-pressed={mode === 'vin'} className={mode === 'vin' ? 'active' : ''} onClick={() => { reset(); setInput(''); setMode('vin') }}>{t('VIN number', 'מספר שלדה (VIN)')}</button>
-              <button aria-pressed={mode === 'plate'} className={mode === 'plate' ? 'active' : ''} onClick={() => { reset(); setInput(''); setMode('plate') }}><span className="il-tag">IL</span>{t('License plate', 'מספר רישוי')}</button>
-            </div>
-            <form onSubmit={submit} noValidate>
-              <label htmlFor="identifier">{mode === 'vin' ? t('Vehicle identification number', 'מספר זיהוי הרכב') : t('Israeli license plate', 'מספר רישוי ישראלי')}</label>
-              <div className={`identifier-wrap ${mode === 'plate' ? 'plate-mode' : ''}`}>
-                {mode === 'plate' && <span className="plate-country" aria-hidden="true">IL</span>}
-                <input id="identifier" dir="ltr" autoComplete="off" autoCapitalize="characters" spellCheck={false} inputMode={mode === 'plate' ? 'numeric' : 'text'} value={input} onChange={(event) => { reset(); setInput(event.target.value) }} placeholder={mode === 'vin' ? t('Enter your 17-character VIN', '17 תווים של ה-VIN שלך') : '123-45-678'} maxLength={mode === 'vin' ? 30 : 15} aria-describedby="input-help lookup-error" aria-invalid={Boolean(error)} />
-              </div>
-              <p className="field-help" id="input-help">{mode === 'vin' ? t('Find it under Controls → Software, or on your registration.', 'מופיע ברכב תחת פקדים ← תוכנה, או ברישיון הרכב.') : t('We use data.gov.il to retrieve the VIN, just like CarAgent. Active vehicles only.', 'ה-VIN נשלף מ-data.gov.il, כמו ב-CarAgent. החיפוש במאגר הרכבים הפעילים בלבד.')}</p>
-              <div id="lookup-error" role="alert">{error && <p className="error-message">{(errorText[error] ?? errorText.internal_error)[lang]}</p>}</div>
-              <button className="submit-button" disabled={busy || !input.trim()} type="submit">{busy ? <><span className="spinner" />{t('Looking up your vehicle…', 'מחפשים את הרכב שלך…')}</> : <>{t('Check battery configuration', 'בדיקת תצורת הסוללה')}<Icon name="arrow" size={19} /></>}</button>
-            </form>
-            <button className="demo-button" onClick={demo}>{t('Just exploring? Try a fictional example', 'רק מתעניינים? אפשר לנסות דוגמה פיקטיבית')} <span aria-hidden="true">↗</span></button>
-            <div className="privacy-note"><Icon name="shield" size={18} /><p>{t('VIN checks stay in your browser. Plate lookups go directly to the government registry, which receives your plate and IP address. This site does not save identifiers or use analytics.', 'בדיקת VIN מתבצעת בדפדפן בלבד. חיפוש רישוי נשלח ישירות למאגר הממשלתי, שמקבל את מספר הרישוי וכתובת ה-IP שלך. האתר לא שומר מזהים ולא משתמש בכלי מעקב.')}</p></div>
-          </div>
-
-          <section className={`result-card ${result ? `has-result ${result.status}` : 'empty-result'}`} aria-label={t('Assessment result', 'תוצאת הבדיקה')} aria-live="polite" aria-busy={busy} tabIndex={-1} ref={resultRef}>
-            {!result ? <>
-              <div className="section-kicker"><span>02</span> {t('THE BIGGER PICTURE', 'התמונה הרחבה')}</div>
-              <div className="battery-illustration" aria-hidden="true">
-                <div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="battery-shadow" />
-                <div className="battery-pack"><div className="pack-top"><span>BYD / LFP</span><Icon name="bolt" size={23} /></div><div className="battery-cells">{Array.from({ length: 9 }, (_, i) => <i key={i} />)}</div><div className="pack-bottom"><span>STRUCTURAL PACK</span><span>01—09</span></div></div>
-                <span className="illustration-label">{t('ILLUSTRATION · NOT A DIAGNOSTIC', 'המחשה בלבד · לא אבחון')}</span>
-              </div>
-              <h2>{t('Clarity, not a false alarm.', 'בהירות, לא אזעקת שווא.')}</h2>
-              <p>{t('We compare your vehicle’s identifiers with the configuration reported in Taiwan: Berlin-built Model Y RWD, primarily 2023–2024, associated with a BYD structural LFP pack.', 'משווים את מזהי הרכב לתצורה שעלתה בדיווחים בטייוואן: מודל Y בהנעה אחורית מברלין, בעיקר בשנים 2023–2024, המזוהה עם מארז LFP מבני של BYD.')}</p>
-              <div className="empty-result-footer"><span className="status-dot" />{t('A configuration match is not a defect diagnosis.', 'התאמה לתצורה אינה אבחון תקלה.')}</div>
-            </> : <>
-              <div className="result-topline"><div className="section-kicker"><span>02</span>{t('YOUR ASSESSMENT', 'ההערכה שלך')}</div><span className="result-badge">{lookup?.demo ? t('FICTIONAL EXAMPLE', 'דוגמה פיקטיבית') : lookup?.source === 'plate' ? 'DATA.GOV.IL' : t('VIN DECODE', 'פענוח VIN')}</span></div>
-              <div className="result-symbol"><Icon name={result.status === 'outside' ? 'search' : 'bolt'} size={29} /></div>
-              <h2>{statusText[result.status].title[lang]}</h2>
-              <p className="result-description">{statusText[result.status].description[lang]}</p>
-              <div className="probability-block"><div><span className="probability-label">{t('CHANCE OF THIS BATTERY CONFIGURATION', 'הסיכוי לתצורת הסוללה הזו')}</span><strong>{t('Not yet quantifiable', 'עדיין לא ניתן לכימות')}</strong></div><span className="unknown-percent" aria-label={t('Percentage unknown', 'האחוז אינו ידוע')}>—<small>%</small></span></div>
-              <p className="probability-explanation">{t('There is no representative, battery-labeled dataset to calculate a reliable percentage. Matching VIN characteristics are evidence—not a statistical probability.', 'אין מאגר מייצג עם זיהוי סוללות שמאפשר לחשב אחוז אמין. התאמת מאפייני VIN היא ראיה, ולא הסתברות סטטיסטית.')}</p>
-              <p className="probability-explanation">{t('VIN decoding does not verify that a vehicle exists. No manufacturer lookup or VIN authentication is performed.', 'פענוח VIN אינו מאמת שהרכב קיים. לא מתבצע חיפוש אצל היצרן או אימות מקוריות VIN.')}</p>
-              <div className="criteria-list">{result.criteria.map((criterion) => <div key={criterion.id}><span className={`criterion-icon ${criterion.match === true ? 'matched' : ''}`}>{criterion.match === true ? <Icon name="check" size={13} /> : criterion.match === false ? '−' : '?'}</span><span>{criteriaLabels[criterion.id]}</span><span className="criterion-status">{criterion.match === true ? t('Matches', 'תואם') : criterion.match === false ? t('Differs', 'שונה') : t('Unknown', 'לא ידוע')}</span></div>)}</div>
-              <div className="vehicle-facts"><div><span>{t('Factory', 'מפעל')}</span><strong>{result.decoded.factory ?? '—'}</strong></div><div><span>{t('Build / model year', 'שנת ייצור / דגם')}</span><strong>{result.decoded.year ?? '—'}</strong></div><div><span>{t('Current battery', 'סוללה נוכחית')}</span><strong>{replacement === 'no' ? t('Original, per owner', 'מקורית, לפי הבעלים') : t('Unverified', 'לא אומתה')}</strong></div></div>
-              {lookup?.source === 'plate' && <p className="registry-details">{t('Registry model code', 'קוד דגם במאגר')}: {lookup.modelCode ?? '—'} · {t('Directive', 'הוראת רישום')}: {lookup.directive ?? '—'}<br />{t('These identifiers are not yet mapped to battery suppliers.', 'המזהים האלה עדיין אינם ממופים לספקי סוללות.')}</p>}
-              <details className="refine-details"><summary><Icon name="plus" size={16} />{t('Have a CoC or replacement history?', 'יש תעודת CoC או היסטוריית החלפה?')}</summary><div className="refine-fields"><label htmlFor="variant">{t('CoC item 0.2: exact variant', 'סעיף 0.2 בתעודת CoC: תת-דגם מדויק')}</label><select id="variant" value={variant} onChange={(event) => { const value = event.target.value; if (value === 'Y7CR' || value === 'other' || value === 'unknown') setVariant(value) }}><option value="unknown">{t('I don’t know / no document', 'לא ידוע / אין מסמך')}</option><option value="Y7CR">Y7CR</option><option value="other">{t('A different variant', 'קוד תת-דגם אחר')}</option></select><label htmlFor="replacement">{t('Has the high-voltage battery been replaced?', 'האם סוללת המתח הגבוה הוחלפה?')}</label><select id="replacement" value={replacement} onChange={(event) => { const value = event.target.value; if (value === 'yes' || value === 'no' || value === 'unknown') setReplacement(value) }}><option value="unknown">{t('I don’t know', 'לא ידוע')}</option><option value="no">{t('No, it is the original pack', 'לא, זהו המארז המקורי')}</option><option value="yes">{t('Yes, it has been replaced', 'כן, הסוללה הוחלפה')}</option></select><p>{t('Owner-entered information is not independently verified. A replacement pack cannot be identified from the VIN. Ask Tesla for its full assembly number and revision; do not run service-mode tests.', 'מידע שהוזן על ידי הבעלים אינו מאומת עצמאית. לא ניתן לזהות מארז חלופי לפי VIN. יש לבקש מטסלה מספר מכלול מלא וגרסה; אין לבצע בדיקות במצב שירות.')}</p></div></details>
-              <div className="next-steps"><h3>{t('Turn the result into a better question.', 'מה כדאי לברר עכשיו?')}</h3><p><strong>{t('Buying?', 'קונים?')}</strong> {t('Ask the seller for the CoC, battery-replacement invoices, and Tesla confirmation of the installed pack. This result does not replace a pre-purchase inspection.', 'בקשו מהמוכר תעודת CoC, חשבוניות על החלפת סוללה ואישור מטסלה לזהות המארז המותקן. התוצאה אינה מחליפה בדיקה לפני קנייה.')}</p><p><strong>{t('Already an owner?', 'כבר בעלי הרכב?')}</strong> {t('Confirm your battery identity and warranty with Tesla. Keep repair records and follow any vehicle alerts; don’t change charging habits based on this result.', 'בררו מול טסלה את זהות הסוללה ואת האחריות. שמרו מסמכי תיקון ופעלו לפי התראות הרכב. אין לשנות הרגלי טעינה על סמך התוצאה הזו.')}</p></div>
-            </>}
-          </section>
-        </section>
-
-        <aside className="safety-banner"><span className="safety-icon">!</span><p><strong>{t('An alert on your screen comes first.', 'התראה ברכב קודמת לכל בדיקה כאן.')}</strong> {t('This tool does not diagnose faults or check recalls. Follow the vehicle’s instructions and contact Tesla for BMS alerts—even if your car is outside this profile.', 'הכלי אינו מאבחן תקלות ואינו בודק ריקולים. יש לפעול לפי הוראות הרכב ולפנות לטסלה בעקבות התראות BMS, גם אם הרכב מחוץ למאפיינים האלה.')}</p><a href="https://www.tesla.com/he_il/support/recall" target="_blank" rel="noreferrer">{t('Tesla recalls', 'ריקולים בטסלה')} ↗</a></aside>
-
-        <section className="methodology" id="methodology">
-          <div className="section-heading"><div><div className="eyebrow">{t('LESS GUESSWORK. MORE CONTEXT.', 'פחות ניחושים. יותר הקשר.')}</div><h2>{t('Three questions. Not one.', 'שלוש שאלות. לא אחת.')}</h2></div><p>{t('Knowing a battery’s family is not the same as knowing its condition.', 'זיהוי משפחת הסוללה אינו מעיד על מצבה.')}</p></div>
-          <div className="method-grid">{[
-            { number: '01', title: t('What was built?', 'מה יוצר?'), text: t('The VIN indicates vehicle characteristics. A matching Y7CR approval variant supports the original BYD configuration—not a defective batch.', 'ה-VIN מצביע על מאפייני הרכב. קוד התקינה Y7CR תומך בזיהוי תצורת BYD המקורית, לא בזיהוי אצווה פגומה.'), tag: t('VIN + original documents', 'VIN ומסמכים מקוריים') },
-            { number: '02', title: t('What’s installed now?', 'מה מותקן עכשיו?'), text: t('A replacement battery keeps the same vehicle VIN. Current pack identity needs service records or Tesla confirmation.', 'החלפת סוללה אינה משנה את ה-VIN. זיהוי המארז הנוכחי דורש מסמכי שירות או אישור מטסלה.'), tag: t('Service records', 'מסמכי שירות') },
-            { number: '03', title: t('Is there a fault?', 'האם יש תקלה?'), text: t('Only proper diagnostics can establish a malfunction. No validated VIN-level defect rule or failure probability is available for this cluster.', 'תקלה נקבעת רק באמצעות אבחון מתאים. לא קיים בידינו כלל מאומת לזיהוי פגם או הסתברות לכשל ברמת VIN בקבוצה הזו.'), tag: t('Professional diagnosis', 'אבחון מקצועי') },
-          ].map((item) => <article key={item.number}><span className="method-number">{item.number}</span><h3>{item.title}</h3><p>{item.text}</p><span className="method-tag">{item.tag}</span></article>)}</div>
-        </section>
-
-        <section className="research-section" id="research">
-          <div className="research-intro"><div className="eyebrow">{t('OPEN EVIDENCE', 'ראיות גלויות')}</div><h2>{t('Don’t take our word for it.', 'לא צריך להסתמך רק עלינו.')}</h2><p>{t('Taiwan owner reports document structural-pack replacements. The proposed sealing / moisture explanation remains unconfirmed. Korea’s BMS_a079 cases and US recall 25V690 are separate evidence tracks.', 'דיווחי בעלים בטייוואן מתעדים החלפות מארזים מבניים. הסבר האיטום או הלחות עדיין לא אושר. מקרי BMS_a079 בקוריאה וריקול 25V690 בארה״ב הם נושאים נפרדים.')}</p><span className="research-date">{t('Evidence reviewed', 'הראיות נבדקו בתאריך')} <time dateTime={RESEARCH_DATE}>{RESEARCH_DATE}</time></span></div>
-          <div className="sources-list">{SOURCES.map((source, index) => <a href={source.url} key={source.url} target="_blank" rel="noreferrer"><span className="source-number">0{index + 1}</span><span><strong>{source.title[lang]}</strong><small>{source.kind[lang]}</small></span><span aria-hidden="true">↗</span></a>)}</div>
-        </section>
-      </main>
-      <footer><span className="footer-brand">BatteryAtlas <span> / {t('Clarity through evidence.', 'בהירות דרך ראיות.')}</span></span><p>{t('Independent project. Not affiliated with Tesla or BYD.', 'פרויקט עצמאי. אינו קשור לטסלה או ל-BYD.')}</p></footer>
-    </div>
-  )
+      {shared && <div className="shared-recall-note"><Icon name="info" size={20} /><div><strong>ריקולים בסיכום ששיתף המשתמש</strong><p>{shared.recall ? `${shared.recall.count}${shared.recall.truncated ? '+' : ''} קריאות במאגר לפי הדוח שנוצר. מועד השאילתה שצוין: ${new Date(shared.recall.checkedAt).toLocaleString('he-IL')}.` : 'לא נכללה בדיקת ריקולים בסיכום.'} זהו מידע מתוך הקישור ולא תוצאה שנשלפה כעת. התחילו בדיקה לפי מספר רישוי לקבלת מידע עדכני.</p></div></div>}
+      <RecallPanel state={recalls} hasPlate={Boolean(lookup?.plate)} demo={Boolean(lookup?.demo)} onRetry={retryRecalls} onPlate={() => chooseMode('plate')} />
+      {result && lookup && !lookup.demo && lookup.source !== 'shared' && <ShareReport key={`${lookup.vin}:${variant}:${replacement}:${recalls.status}:${recalls.status === 'ready' ? recalls.report.checkedAt : ''}`} assessment={result} variant={variant} replacement={replacement} recalls={recalls} />}
+      <BatteryExplainer />
+      <section className="sources-section" id="sources"><div><span className="eyebrow">מאחורי כל מסקנה יש מקור</span><h2>אפשר לבדוק גם אותנו.</h2><p>תיעוד טסלה, מאגרי מידע רשמיים ודיווחים מקומיים — עם הבחנה בין עובדה, דיווח והשערה.</p><span className="research-date">בסיס המחקר עודכן: <time dateTime={RESEARCH_DATE}>{new Date(`${RESEARCH_DATE}T12:00:00`).toLocaleDateString('he-IL')}</time></span></div><div className="sources-list">{SOURCES.map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer"><span className="source-number">{String(index + 1).padStart(2, '0')}</span><span><strong>{source.title.he}</strong><small>{source.kind.he}</small></span><Icon name="link" size={16} /></a>)}</div></section>
+      <details className="method-notes"><summary>איך הבדיקה עובדת, ומה משותף בדוח?</summary><p>המדד סופר ארבעה מאפייני רכב ביחס לקבוצה שנחקרה. הוא אינו מודל הסתברותי, אבחון או אימות מקוריות VIN. החלפת סוללה אינה משנה VIN; מידע על הסוללה המותקנת דורש מסמכי שירות. פרטים מתעודת CoC מוזנים על ידי המשתמש.</p><p>דוח משותף כולל קידומת VIN של 11 תווים, שמזהה מאפייני קבוצה ולא את המספר הסידורי, פרטים שהמשתמש ציין וסיכום ריקולים אם הושלם. הוא אינו חתום או מאומת: נמען יכול לראות סיכום אך צריך לבצע בדיקה עדכנית משלו.</p><p>מספרי רישוי נשלחים ישירות ל־data.gov.il, שמקבל גם את כתובת ה-IP. האתר אינו שומר מזהי רכב או משתמש בכלי אנליטיקה. ברירת המחדל היא מאגר רכבים פעילים; מידע חדש או רכב לא פעיל עשויים להיות חסרים.</p></details>
+    </main>
+    <footer><a className="brand footer-brand" href="#"><span dir="ltr">Test<span>Ma</span>Tesla</span></a><p>מכירים את הטסלה. לפני הקנייה ולאורך הדרך.</p><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
+  </div>
 }

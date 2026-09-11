@@ -1,0 +1,53 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { createReport, parseReport, readInitialReport, reportLink } from '../src/lib/share.ts'
+import { assess } from '../src/lib/checker.ts'
+
+const vin = 'XP7YGCFR0PB123456'
+const encoded = (value: unknown) => `#report=${btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')}`
+
+test('shared report omits plate and VIN serial while retaining reconstructible configuration', () => {
+  const report = createReport(vin, 'Y7CR', 'yes')
+  assert.equal(report.prefix, vin.slice(0, 11))
+  assert.ok(!JSON.stringify(report).includes('123456'))
+  assert.ok(!JSON.stringify(report).includes(vin))
+  const link = reportLink(report, 'https://example.org/TeslaVnCheck/?old=123456#sources')
+  assert.equal(new URL(link).search, '')
+  assert.equal(new URL(link).pathname, '/TeslaVnCheck/')
+  assert.deepEqual(parseReport(new URL(link).hash), report)
+  assert.equal(assess(report.prefix + '000000', report.variant, report.replacement).status, 'document-supported')
+})
+test('recall counts retain time and incomplete-result semantics, not a live verification', () => {
+  const recall = { count: 3, checkedAt: new Date(Date.now() - 1000).toISOString(), truncated: true }
+  const report = createReport(vin, 'unknown', 'unknown', recall)
+  assert.deepEqual(parseReport(encoded(report))?.recall, recall)
+})
+test('ordinary navigation hashes are not interpreted as reports', () => {
+  assert.equal(parseReport('#sources'), null)
+  assert.deepEqual(readInitialReport(''), { report: null, invalid: false })
+})
+test('malformed share links visibly fail rather than generating a clean assessment', () => {
+  for (const hash of ['#report=', '#report=!!!', '#report=' + 'a'.repeat(1801), encoded(null), encoded({ version: 2 })]) {
+    assert.deepEqual(readInitialReport(hash), { report: null, invalid: true })
+  }
+})
+test('rejects invalid identifiers, enums, dates and recall counts', () => {
+  const report = createReport(vin, 'unknown', 'unknown')
+  const invalid = [
+    { ...report, prefix: vin },
+    { ...report, prefix: '!!!' },
+    { ...report, variant: 'CATL' },
+    { ...report, replacement: 'certified' },
+    { ...report, createdAt: 'not a date' },
+    { ...report, createdAt: '2099-01-01T00:00:00Z' },
+    { ...report, recall: { count: -1, checkedAt: report.createdAt, truncated: false } },
+    { ...report, recall: { count: 1.5, checkedAt: report.createdAt, truncated: false } },
+    { ...report, recall: { count: 0, checkedAt: report.createdAt, truncated: 'false' } },
+    { ...report, recall: { count: 0, checkedAt: '2099-01-01T00:00:00Z', truncated: false } },
+  ]
+  for (const value of invalid) assert.deepEqual(readInitialReport(encoded(value)), { report: null, invalid: true })
+})
+test('extraneous untrusted fields are not propagated to the public report', () => {
+  const report = createReport(vin, 'unknown', 'no')
+  assert.deepEqual(parseReport(encoded({ ...report, fullVin: vin, owner: '<script>test</script>', validated: true })), report)
+})
