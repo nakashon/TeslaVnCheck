@@ -26,11 +26,19 @@ The government CKAN endpoint supports cross-origin browser requests (`Access-Con
 
 The target reported profile is **Berlin-built Model Y RWD, manufactured in 2023-2024**, associated with BYD structural LFP original configurations. Matching this profile does not establish the supplier, a defective batch, or the condition of an individual car.
 
-- `candidate`: known VIN characteristics match the reported profile.
+- `candidate`: known VIN/registration characteristics match the reported profile.
 - `outside`: at least one known characteristic differs; not a safety clearance.
 - `document-supported`: the profile and owner-entered exact `Y7CR` CoC variant agree.
-- `conflicting`: VIN identifiers or the entered Y7CR variant conflict.
+- `conflicting`: VIN identifiers, registration evidence or the entered Y7CR variant conflict.
 - `unknown`: insufficient/unsupported information; other variants are not automatically CATL.
+
+Plate checks also use the registry's production year and explicit RWD/AWD trim.
+The registry year, VIN year and first-registration date are displayed separately.
+Conflicting registry/VIN years or drive types produce an amber conflict result;
+the disputed characteristic remains unknown in the count. VIN-only 2025+ years
+are unresolved rather than automatically outside: 2024 is the end of the main
+research window, not a proven supplier or defective-batch cutoff. Generic
+`LONG RANGE` trim is not interpreted as AWD across generations.
 
 `probability` is intentionally `null`. There is no representative battery-labeled dataset to calibrate P(target configuration | identifiers). Do not convert characteristic counts or complaint-group percentages into a chance of having a particular battery. A real probability model needs representative labeled records, deduplication, current-pack identity, and held-out calibration.
 
@@ -38,7 +46,7 @@ The visible metric is a count: **4 of 4 profile characteristics match**, with se
 
 The 2020-2024 Tesla VIN table incompletely specifies Berlin chemistry; E/F is not used as a Berlin chemistry or supplier rule. Historical drive decoding is limited to the inspected generation. A replaced pack cannot be identified from the original VIN. CoC information is self-reported, not authenticated. VIN validation checks format, not vehicle existence or VIN authenticity.
 
-This tool does not diagnose faults. Active alerts always take precedence. Source URLs and evidence types are in `src/lib/checker.ts`. Research cutoff: 2026-09-11.
+This tool does not diagnose faults. Active alerts always take precedence. Source URLs and evidence types are in `src/lib/checker.ts`. Research cutoff: 2026-09-12.
 
 ## Israeli recalls
 
@@ -52,6 +60,7 @@ Users can generate a Hebrew PNG with a QR code, download it, copy a report link 
 
 - The report carries only the first 11 VIN characters (shared vehicle characteristics), never the six-digit serial number, full VIN or license plate.
 - It includes owner-entered CoC/replacement answers, creation time and an optional recall-count snapshot with its query time.
+- Version 2 reports also carry the non-identifying registration year/drive evidence, when available, so shared pages and PNGs preserve conflicts. Version 1 links remain readable; older clients reject version 2 instead of silently discarding evidence. Shared registration facts remain unverified user snapshots, not live registry results.
 - Report data is encoded in the URL fragment. The fragment is not sent in the HTTP request to GitHub Pages.
 - The receiver recomputes the configuration match from the shared prefix. Owner claims and recall summaries remain **user-shared and unverified**, not live or digitally signed results.
 - The image and landing page explicitly describe a vehicle-identification summary, not a roadworthiness certificate or Tesla authentication.

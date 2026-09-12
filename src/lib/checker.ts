@@ -4,7 +4,7 @@ export type Variant = 'unknown' | 'Y7CR' | 'other'
 export type Replacement = 'unknown' | 'no' | 'yes'
 export type Status = 'candidate' | 'outside' | 'document-supported' | 'conflicting' | 'unknown'
 
-export const RESEARCH_DATE = '2026-09-11'
+export const RESEARCH_DATE = '2026-09-12'
 export const SOURCES = [
   {
     title: { en: 'Tesla: 2020–2024 VIN decoding', he: 'טסלה: פענוח VIN לשנים 2020–2024' },
@@ -100,6 +100,11 @@ export function decodeVin(input: string): DecodedVin {
 
 export interface Assessment {
   decoded: DecodedVin
+  registration: RegistrationEvidence | null
+  profileYear: number | null
+  profileDrive: DecodedVin['drive']
+  yearConflict: boolean
+  driveConflict: boolean
   status: Status
   probability: number | null
   criteria: { id: 'model' | 'factory' | 'year' | 'drive'; match: boolean | null }[]
@@ -108,34 +113,54 @@ export interface Assessment {
   profileMatch: { matched: number; different: number; unknown: number; total: number }
 }
 
+export interface RegistrationEvidence {
+  year: number | null
+  drive: DecodedVin['drive']
+}
+
+export function registrationEvidence(year: number | null, trim: string | null): RegistrationEvidence {
+  const name = trim?.trim().toUpperCase()
+  return {
+    year,
+    drive: name === 'RWD' ? 'rwd' : name === 'AWD' ? 'awd' : 'unknown',
+  }
+}
+
 export function assessmentTone(status: Status): 'attention' | 'clear' | 'uncertain' {
   if (status === 'candidate' || status === 'document-supported') return 'attention'
   return status === 'outside' ? 'clear' : 'uncertain'
 }
 
-export function assess(input: string, variant: Variant = 'unknown', replacement: Replacement = 'unknown'): Assessment {
+export function assess(input: string, variant: Variant = 'unknown', replacement: Replacement = 'unknown', registration: RegistrationEvidence | null = null): Assessment {
   const decoded = decodeVin(input)
+  const yearConflict = registration?.year != null && decoded.year !== null && registration.year !== decoded.year
+  const driveConflict = registration != null && registration.drive !== 'unknown' && decoded.drive !== 'unknown' && registration.drive !== decoded.drive
+  const profileYear = registration?.year ?? decoded.year
+  const profileDrive = driveConflict ? 'unknown' : registration && registration.drive !== 'unknown' ? registration.drive : decoded.drive
   const criteria: Assessment['criteria'] = [
     { id: 'model', match: decoded.model ? decoded.model === 'Model Y' : null },
     { id: 'factory', match: decoded.factory && !decoded.conflict ? decoded.factory === 'Berlin' : null },
-    { id: 'year', match: decoded.year ? decoded.year >= 2023 && decoded.year <= 2024 : null },
-    { id: 'drive', match: decoded.drive === 'unknown' ? null : decoded.drive === 'rwd' },
+    // The research window is not a proven end-of-production or defective-batch boundary.
+    { id: 'year', match: yearConflict || profileYear === null || profileYear > 2024 ? null : profileYear >= 2023 },
+    { id: 'drive', match: profileDrive === 'unknown' ? null : profileDrive === 'rwd' },
   ]
   const outside = criteria.some((item) => item.match === false)
   const allMatch = criteria.every((item) => item.match === true)
   let status: Status = 'unknown'
-  if (decoded.conflict || (variant === 'Y7CR' && outside)) status = 'conflicting'
+  if (decoded.conflict || yearConflict || driveConflict || (variant === 'Y7CR' && outside)) status = 'conflicting'
   else if (outside && decoded.supported) status = 'outside'
   else if (variant === 'Y7CR' && allMatch) status = 'document-supported'
   else if (allMatch && variant !== 'other') status = 'candidate'
   const reasons = [
     'no_calibration',
+    ...(yearConflict ? ['registration_year_conflict'] : []),
+    ...(driveConflict ? ['registration_drive_conflict'] : []),
     ...(decoded.factory === 'Berlin' ? ['berlin_chemistry_gap'] : []),
     ...(variant !== 'unknown' ? ['self_reported_document'] : []),
     ...(replacement !== 'no' ? ['current_pack_unknown'] : []),
   ]
   return {
-    decoded, status,
+    decoded, registration, profileYear, profileDrive, yearConflict, driveConflict, status,
     // No labeled, representative fleet dataset exists to calibrate a probability.
     probability: null,
     criteria,

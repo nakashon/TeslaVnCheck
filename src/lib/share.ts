@@ -1,17 +1,21 @@
 import { normalizeVin } from './checker.ts'
-import type { Replacement, Variant } from './checker.ts'
+import type { RegistrationEvidence, Replacement, Variant } from './checker.ts'
 
 export interface SharedReport {
-  version: 1
+  version: 1 | 2
   prefix: string
   variant: Variant
   replacement: Replacement
   createdAt: string
   recall: { count: number; checkedAt: string; truncated: boolean } | null
+  registration?: RegistrationEvidence
 }
 
-export function createReport(vin: string, variant: Variant, replacement: Replacement, recall: SharedReport['recall'] = null): SharedReport {
-  return { version: 1, prefix: normalizeVin(vin).slice(0, 11), variant, replacement, createdAt: new Date().toISOString(), recall }
+export function createReport(vin: string, variant: Variant, replacement: Replacement, recall: SharedReport['recall'] = null, registration: RegistrationEvidence | null = null): SharedReport {
+  return {
+    version: 2, prefix: normalizeVin(vin).slice(0, 11), variant, replacement, createdAt: new Date().toISOString(), recall,
+    ...(registration ? { registration: { year: registration.year, drive: registration.drive } } : {}),
+  }
 }
 
 export function reportLink(report: SharedReport, base: string): string {
@@ -35,7 +39,7 @@ export function parseReport(hash: string): SharedReport | null {
   const encoded = hash.slice(8)
   if (encoded.length > 1800 || !/^[A-Za-z0-9_-]+$/.test(encoded)) throw new Error('invalid_report')
   const value: unknown = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')))
-  if (!isRecord(value) || value.version !== 1 || typeof value.prefix !== 'string' ||
+  if (!isRecord(value) || (value.version !== 1 && value.version !== 2) || typeof value.prefix !== 'string' ||
     value.prefix.length !== 11 || normalizeVin(value.prefix + '000000').slice(0, 11) !== value.prefix ||
     !['unknown', 'Y7CR', 'other'].includes(String(value.variant)) ||
     !['unknown', 'no', 'yes'].includes(String(value.replacement)) || !validDate(value.createdAt)) {
@@ -52,7 +56,15 @@ export function parseReport(hash: string): SharedReport | null {
     }
     recall = { count: value.recall.count, checkedAt: value.recall.checkedAt, truncated: value.recall.truncated }
   }
-  return { version: 1, prefix: value.prefix, variant: value.variant, replacement: value.replacement, createdAt: value.createdAt, recall }
+  let registration: RegistrationEvidence | undefined
+  if (value.registration !== undefined) {
+    const raw = value.registration
+    if (value.version !== 2 || !isRecord(raw) ||
+      (raw.year !== null && (typeof raw.year !== 'number' || !Number.isInteger(raw.year) || raw.year < 1900 || raw.year > 2099)) ||
+      (raw.drive !== 'rwd' && raw.drive !== 'awd' && raw.drive !== 'unknown')) throw new Error('invalid_report')
+    registration = { year: raw.year, drive: raw.drive }
+  }
+  return { version: value.version, prefix: value.prefix, variant: value.variant, replacement: value.replacement, createdAt: value.createdAt, recall, ...(registration ? { registration } : {}) }
 }
 
 export function readInitialReport(hash: string): { report: SharedReport | null; invalid: boolean } {

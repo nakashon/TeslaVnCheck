@@ -142,6 +142,7 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; 
 .recall-id { color: #596779; font-size: 12px; }
 .recall-items p { font-size: 12px; color: #626f82; line-height: 1.8; margin: 7px 0 0; }
 .lookup-time { font-size: 11px; color: #7c8491; margin-top: 15px; line-height: 1.8; }
+.vehicle-year-source { font-size: 12px; color: #657185; line-height: 1.9; margin: 0 0 16px; }
 .recall-footer { display: flex; flex-wrap: wrap; gap: 23px; padding-top: 19px; margin-top: 18px; border-top: 1px solid #e8ebf0; }
 .recall-footer a { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4d5d76; text-decoration: none; }
 .recall-footer a:hover { text-decoration: underline; }

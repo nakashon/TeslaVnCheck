@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { assess, assessmentTone, decodeVin, normalizePlate, normalizeVin, InputError } from '../src/lib/checker.ts'
+import { assess, assessmentTone, decodeVin, normalizePlate, normalizeVin, registrationEvidence, InputError } from '../src/lib/checker.ts'
 
 const berlin = 'XP7YGCFR0PB000001'
 const shanghai = 'LRWYGCFR0PC000001'
@@ -50,7 +50,7 @@ test('conflicting factory or document identifiers never yield a match', () => {
 })
 test('AWD and different years differ; unknown drive and year remain unresolved', () => {
   assert.equal(assess(berlin.slice(0, 7) + 'K' + berlin.slice(8)).status, 'outside')
-  assert.equal(assess(berlin.slice(0, 9) + 'S' + berlin.slice(10)).status, 'outside')
+  assert.equal(assess(berlin.slice(0, 9) + 'S' + berlin.slice(10)).status, 'unknown')
   assert.equal(assess(berlin.slice(0, 7) + 'Z' + berlin.slice(8)).status, 'unknown')
   assert.equal(assess(berlin.slice(0, 9) + 'Z' + berlin.slice(10)).status, 'unknown')
 })
@@ -75,4 +75,38 @@ test('outcome colors are distinct and do not use a green theme for target profil
   assert.equal(assessmentTone('outside'), 'clear')
   assert.equal(assessmentTone('unknown'), 'uncertain')
   assert.equal(assessmentTone('conflicting'), 'uncertain')
+})
+test('late-year registration/VIN mismatch cannot exclude a Berlin RWD or silently overwrite a year', () => {
+  const vin = 'XP7YGCES0SB000001'
+  const result = assess(vin, 'unknown', 'unknown', registrationEvidence(2024, 'RWD'))
+  assert.equal(result.decoded.year, 2025)
+  assert.equal(result.registration?.year, 2024)
+  assert.equal(result.profileYear, 2024)
+  assert.equal(result.decoded.drive, 'unknown')
+  assert.equal(result.profileDrive, 'rwd')
+  assert.equal(result.yearConflict, true)
+  assert.equal(result.status, 'conflicting')
+  assert.equal(assessmentTone(result.status), 'uncertain')
+  assert.deepEqual(result.profileMatch, { matched: 3, different: 0, unknown: 1, total: 4 })
+  assert.equal(assess(vin, 'Y7CR', 'no', registrationEvidence(2024, 'RWD')).status, 'conflicting')
+})
+test('post-2024 years alone are unresolved, not a verified supplier or defect cutoff', () => {
+  for (const code of ['S', 'T']) {
+    const result = assess(berlin.slice(0, 9) + code + berlin.slice(10))
+    assert.equal(result.status, 'unknown')
+    assert.equal(result.criteria.find(item => item.id === 'year')?.match, null)
+  }
+  assert.equal(assess(berlin.slice(0, 9) + 'S' + berlin.slice(10), 'unknown', 'unknown', { year: 2025, drive: 'rwd' }).status, 'unknown')
+  assert.equal(assess(shanghai).status, 'outside')
+})
+test('registration evidence preserves established cases and exposes drive contradictions', () => {
+  assert.equal(assess(berlin, 'unknown', 'unknown', registrationEvidence(2023, 'RWD')).status, 'candidate')
+  assert.equal(registrationEvidence(2025, 'LONG RANGE').drive, 'unknown')
+  assert.equal(registrationEvidence(2025, ' rwd ').drive, 'rwd')
+  assert.equal(assess(berlin, 'unknown', 'unknown', registrationEvidence(null, null)).status, 'candidate')
+  const mismatch = assess(berlin, 'unknown', 'unknown', registrationEvidence(2023, 'AWD'))
+  assert.equal(mismatch.status, 'conflicting')
+  assert.equal(mismatch.driveConflict, true)
+  assert.equal(mismatch.profileDrive, 'unknown')
+  assert.equal(mismatch.criteria.find(item => item.id === 'drive')?.match, null)
 })

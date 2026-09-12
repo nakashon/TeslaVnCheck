@@ -44,13 +44,17 @@ export function BatteryResult({ result, variant, replacement, setVariant, setRep
   const [audience, setAudience] = useState<'buyer' | 'owner'>('buyer')
   const tone = assessmentTone(result.status)
   const text = copy[result.status]
+  const title = result.yearConflict
+    ? result.criteria.some(item => item.match === false) ? 'יש פער בין שנת הרישום לשנת ה־VIN.' : 'הרכב עשוי להשתייך לקבוצה — יש פער בשנים.'
+    : text.title
   return <section className="battery-result" data-tone={tone} aria-labelledby="battery-result-title">
     <div className="result-intro">
       <span className="outcome-badge"><Icon name={tone === 'clear' ? 'check' : 'info'} size={16} />{text.label}</span>
       <span className="section-index">01 / סוללה</span>
     </div>
-    <h2 id="battery-result-title">{text.title}</h2>
-    <p className="result-summary">{text.detail}</p>
+    <h2 id="battery-result-title">{title}</h2>
+    <p className="result-summary">{result.yearConflict ? `שנת הייצור בנתוני הרישום היא ${result.registration?.year}, אך שנת ה־VIN מפוענחת כ־${result.decoded.year}. אין לשלול את הרכב על סמך שנת ה־VIN בלבד. נדרש מסמך ייצור או זיהוי של מארז הסוללה.` : result.driveConflict ? 'סוג ההנעה ברישום אינו תואם לפענוח ה־VIN. השוו למסמכי הרכב לפני קביעת התאמה.' : text.detail}</p>
+    {result.profileYear !== null && result.profileYear > 2024 && !result.yearConflict && <p className="inline-warning">השנה מחוץ לחלון המחקר המרכזי, אך אינה גבול מאומת של אצווה פגומה. אין די בשנת הייצור כדי לשלול השתייכות.</p>}
     <div className="match-panel">
       <div className="match-total"><bdi><strong>{result.profileMatch.matched}</strong><span> / {result.profileMatch.total}</span></bdi><span>מאפייני הדגם תואמים</span></div>
       <div className="match-detail">
@@ -61,7 +65,7 @@ export function BatteryResult({ result, variant, replacement, setVariant, setRep
     </div>
     <div className="criteria-list">{result.criteria.map((item) => <div key={item.id}>
       <span className="criterion-mark" data-match={item.match === null ? 'unknown' : String(item.match)}>{item.match === true ? <Icon name="check" size={14} /> : item.match === false ? <Icon name="minus" size={14} /> : '?'}</span>
-      <span>{labels[item.id]}</span><strong>{item.match === true ? 'תואם' : item.match === false ? 'שונה' : 'לא ידוע'}</strong>
+      <span>{labels[item.id]}</span><strong>{item.id === 'year' && result.yearConflict ? 'פער בין המקורות' : item.match === true ? 'תואם' : item.match === false ? 'שונה' : 'לא ידוע'}</strong>
     </div>)}</div>
     {!readOnly && <details className="refine-details">
       <summary><Icon name="plus" size={17} />יש מסמך סוללה או מידע על החלפה? דייקו את התוצאה</summary>

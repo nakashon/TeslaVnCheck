@@ -3,7 +3,7 @@ import { assess, assessmentTone } from './checker.ts'
 import type { SharedReport } from './share.ts'
 
 export async function renderReportImage(report: SharedReport, link: string): Promise<Blob> {
-  const result = assess(report.prefix + '000000', report.variant, report.replacement)
+  const result = assess(report.prefix + '000000', report.variant, report.replacement, report.registration)
   const tone = assessmentTone(result.status)
   const color = { attention: '#bb253b', clear: '#14764c', uncertain: '#a45e06' }[tone]
   const background = { attention: '#fff0f2', clear: '#ecf8f1', uncertain: '#fff7e7' }[tone]
@@ -36,7 +36,8 @@ export async function renderReportImage(report: SharedReport, link: string): Pro
   text('דוח זיהוי רכב', 1016, 198, 32, '#666b77')
   text(result.decoded.model ?? 'Tesla', 1016, 267, 58, '#191b22', true)
   const factory = ({ Berlin: 'ברלין', Shanghai: 'שנגחאי', Fremont: 'פרימונט', Austin: 'אוסטין' }[result.decoded.factory ?? '']) ?? 'מפעל לא ידוע'
-  text(`${factory}  ·  ${result.decoded.year ?? 'שנה לא ידועה'}`, 1016, 322, 31, '#666b77')
+  text(`${factory}  ·  ${result.profileYear ?? 'שנה לא ידועה'}`, 1016, 322, 31, '#666b77')
+  if (result.yearConflict) text(`שנת ייצור בנתונים ששותפו: ${result.registration?.year} · שנת VIN: ${result.decoded.year}`, 1016, 353, 22, '#a45e06')
   context.fillStyle = background
   context.fillRect(64, 367, 952, 330)
   context.fillStyle = color

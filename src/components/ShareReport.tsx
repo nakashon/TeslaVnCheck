@@ -25,7 +25,7 @@ export function ShareReport({ assessment, variant, replacement, recalls }: {
     setNotice('')
     try {
       const summary = recalls.status === 'ready' ? { count: recalls.report.items.length, checkedAt: recalls.report.checkedAt, truncated: recalls.report.truncated } : null
-      const report = createReport(assessment.decoded.vin, variant, replacement, summary)
+      const report = createReport(assessment.decoded.vin, variant, replacement, summary, assessment.registration)
       const link = reportLink(report, window.location.href)
       const blob = await renderReportImage(report, link)
       if (generation.current !== current) return

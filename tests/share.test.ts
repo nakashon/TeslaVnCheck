@@ -51,3 +51,27 @@ test('extraneous untrusted fields are not propagated to the public report', () =
   const report = createReport(vin, 'unknown', 'no')
   assert.deepEqual(parseReport(encoded({ ...report, fullVin: vin, owner: '<script>test</script>', validated: true })), report)
 })
+test('v2 shared reports preserve registration conflicts without carrying a plate or full VIN', () => {
+  const vin = 'XP7YGCES0SB123456'
+  const report = createReport(vin, 'unknown', 'unknown', null, { year: 2024, drive: 'rwd' })
+  assert.equal(report.version, 2)
+  const parsed = parseReport(encoded(report))
+  assert.ok(parsed)
+  assert.deepEqual(parsed, report)
+  const result = assess(parsed.prefix + '000000', parsed.variant, parsed.replacement, parsed.registration)
+  assert.equal(result.status, 'conflicting')
+  assert.equal(result.profileYear, 2024)
+  assert.equal(result.decoded.year, 2025)
+  assert.equal(result.profileDrive, 'rwd')
+  assert.ok(!JSON.stringify(parsed).includes('123456'))
+})
+test('legacy reports remain readable; unsupported versions or invalid evidence are rejected', () => {
+  const legacy = { ...createReport(vin, 'unknown', 'no'), version: 1 }
+  assert.deepEqual(parseReport(encoded(legacy)), legacy)
+  const report = createReport(vin, 'unknown', 'no')
+  for (const registration of [null, {}, { year: '2024', drive: 'rwd' }, { year: 2024.5, drive: 'rwd' }, { year: 99999, drive: 'rwd' }, { year: 2024, drive: '4x2' }]) {
+    assert.equal(readInitialReport(encoded({ ...report, registration })).invalid, true)
+  }
+  assert.equal(readInitialReport(encoded({ ...report, version: 3 })).invalid, true)
+  assert.equal(readInitialReport(encoded({ ...legacy, registration: { year: 2024, drive: 'rwd' } })).invalid, true)
+})
