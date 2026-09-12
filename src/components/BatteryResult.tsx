@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { assessmentTone } from '../lib/checker.ts'
 import type { Assessment, Replacement, Status, Variant } from '../lib/checker.ts'
 import { Icon } from './Icon.tsx'
+import { CocHelp } from './CocHelp.tsx'
 
 const copy: Record<Status, { label: string; title: string; detail: string }> = {
   candidate: {
@@ -68,8 +69,9 @@ export function BatteryResult({ result, variant, replacement, setVariant, setRep
       <span>{labels[item.id]}</span><strong>{item.id === 'year' && result.yearConflict ? 'פער בין המקורות' : item.match === true ? 'תואם' : item.match === false ? 'שונה' : 'לא ידוע'}</strong>
     </div>)}</div>
     {!readOnly && <details className="refine-details">
-      <summary><Icon name="plus" size={17} />יש מסמך סוללה או מידע על החלפה? דייקו את התוצאה</summary>
+      <summary><Icon name="plus" size={17} />זיהוי הסוללה: איך משיגים מסמך ומה מזינים?</summary>
       <div className="refine-fields">
+        <CocHelp />
         <label htmlFor="variant">קוד תת-הדגם בתעודת ההתאמה (CoC), סעיף 0.2</label>
         <select id="variant" value={variant} onChange={(event) => { const value = event.target.value; if (value === 'unknown' || value === 'Y7CR' || value === 'other') setVariant(value) }}>
           <option value="unknown">אין לי את המסמך / לא ידוע</option><option value="Y7CR">Y7CR</option><option value="other">מופיע קוד אחר</option>

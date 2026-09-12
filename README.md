@@ -46,6 +46,15 @@ The visible metric is a count: **4 of 4 profile characteristics match**, with se
 
 The 2020-2024 Tesla VIN table incompletely specifies Berlin chemistry; E/F is not used as a Berlin chemistry or supplier rule. Historical drive decoding is limited to the inspected generation. A replaced pack cannot be identified from the original VIN. CoC information is self-reported, not authenticated. VIN validation checks format, not vehicle existence or VIN authenticity.
 
+The optional CoC refinement includes Hebrew document-finding instructions and a
+copyable request for Tesla/the importer. Tesla's UK support page explicitly
+directs owners to contact Tesla for a CoC; Israeli availability, delivery method
+and fees are not established. Account documents are a place to check, not a
+promised CoC download. The site neither retrieves nor sends document requests and
+never asks for Tesla credentials. Users can leave the field unknown; only an
+explicit Variant `Y7CR` should select that option. Tesla's component-level EU
+declarations are not the vehicle-specific CoC.
+
 This tool does not diagnose faults. Active alerts always take precedence. Source URLs and evidence types are in `src/lib/checker.ts`. Research cutoff: 2026-09-12.
 
 ## Israeli recalls

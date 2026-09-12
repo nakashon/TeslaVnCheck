@@ -111,6 +111,14 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; 
 .refine-fields { padding-top: 20px; }
 .refine-fields select { width: 100%; font-size: 16px; color: #3f4a5d; border: 1px solid #cbd2df; background: white; border-radius: 6px; padding: 10px; margin-bottom: 18px; }
 .refine-fields p { font-size: 12px; color: #69768a; line-height: 1.7; }
+.coc-help { padding: 18px; margin-bottom: 23px; border: 1px solid #d6dfea; border-radius: 8px; background: #f4f6fa; }
+.coc-help h3 { margin: 0 0 12px; font-size: 18px; }
+.coc-help ol { padding-inline-start: 21px; margin: 16px 0; }
+.coc-help li { font-size: 13px; color: #536177; line-height: 1.9; margin-bottom: 13px; }
+.coc-help a { color: #425b84; text-underline-offset: 3px; }
+.coc-help label { display: block; font-size: 12px; line-height: 1.8; margin-top: 18px; }
+.coc-help textarea { width: 100%; min-width: 0; resize: vertical; font: inherit; font-size: 16px; line-height: 1.7; padding: 12px; border: 1px solid #cbd2df; border-radius: 6px; margin: 9px 0 12px; background: white; color: #334057; }
+.coc-source { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.8; }
 .next-steps { margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--line); }
 .next-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .next-heading h3 { font-size: 14px; margin: 0; }
