@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cocRequest } from '../lib/coc.ts'
 import { Icon } from './Icon.tsx'
+import { trackEvent } from '../lib/analytics.ts'
 
 export function CocHelp({ vin, plate }: { vin: string | null; plate: string | null }) {
   const requestText = cocRequest(vin, plate)
@@ -8,6 +9,7 @@ export function CocHelp({ vin, plate }: { vin: string | null; plate: string | nu
   async function copyRequest() {
     try {
       await navigator.clipboard.writeText(requestText)
+      if (vin) trackEvent('coc_request_copied')
       setCopyState('copied')
     } catch {
       setCopyState('manual')

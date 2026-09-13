@@ -121,11 +121,68 @@ copied on request, never sent automatically, and is intended for private contact
 with Tesla or the importer rather than public sharing. Demo letters retain a
 VIN placeholder; shared reports do not expose this letter.
 
-The application has no backend, analytics or identifier storage. Plate lookups go
+The application has no backend or vehicle-identifier storage. Plate lookups go
 directly to `data.gov.il`, which receives the requested plate and visitor IP.
 Requests omit credentials and referrers and disable browser caching. GitHub Pages
 may retain ordinary hosting access logs. No external fonts or QR-generation
 services are used.
+
+## Audience, campaigns and usage
+
+Google Analytics 4 runs only on the production domain, and **only after consent**
+in the Hebrew privacy panel. No Google tag or analytics requests are initiated
+before approval. The footer lets visitors decline or withdraw consent; withdrawal
+disables collection and clears this integration's host-only GA cookies.
+The consent choice is stored locally for 180 days, with no vehicle information.
+Google processes browser/device information and uses cookies to count consenting
+visitors. Advertising personalization and Google Signals are disabled.
+
+Configure the public repository variable `VITE_GA_MEASUREMENT_ID` in GitHub
+Actions and deploy. An empty variable disables analytics. Keep **Enhanced
+measurement OFF** in the GA4 web stream, and leave Google Signals, user-provided
+data collection and advertising features off. Do not add a second Google tag,
+automatic form tracking, session recording or Tag Manager triggers.
+
+Application events are limited to page views, valid shared-report opens,
+lookup starts/completions/failures, generated reports, generation failures,
+completed native shares, copied report links, download clicks and copied Tesla
+requests. Only fixed lookup/share method enums accompany these events.
+Form values, VINs, plates, battery verdicts, mileage, documents and report
+fragments are not event parameters. Page URLs are reported as the fixed public
+homepage; only known public referrer origins and allowlisted campaign labels are
+retained. Unknown query parameters, click IDs and free-form campaign values
+are excluded from the application's analytics payload.
+
+### Campaign links
+
+| Placement | Link |
+|---|---|
+| Facebook ad A | https://testmatesla.com/?utm_source=facebook&utm_medium=paid_social&utm_campaign=launch&utm_content=ad-a |
+| Facebook ad B | https://testmatesla.com/?utm_source=facebook&utm_medium=paid_social&utm_campaign=launch&utm_content=ad-b |
+| WhatsApp groups | https://testmatesla.com/?utm_source=whatsapp&utm_medium=social&utm_campaign=launch&utm_content=group |
+| Instagram story | https://testmatesla.com/?utm_source=instagram&utm_medium=social&utm_campaign=launch&utm_content=story |
+
+Supported source, medium, campaign and content labels are defined in
+[`analytics-policy.ts`](src/lib/analytics-policy.ts). Extend those lists for new
+public campaign labels, never personal identifiers. Generated report links and
+QRs automatically use `shared_report / referral / report-share`, replacing the
+sender's campaign parameters without including their vehicle in the query.
+Older untagged report links still work and count valid report opens after consent.
+
+In [Google Analytics](https://analytics.google.com/), use **Realtime** for initial
+activity and **Traffic acquisition** with session source/medium, session campaign
+and session manual ad content to compare placements and ad A versus ad B.
+In Admin, mark `vehicle_lookup_completed` and
+`report_generated` as key events. In Explore, build a funnel from `page_view` to
+`vehicle_lookup_started` to `vehicle_lookup_completed` to `report_generated`.
+Register event-scoped custom dimensions for `lookup_method` and `method` if
+you need those breakdowns. Standard reports may take 24–48 hours to populate.
+
+Counts exclude visitors who decline, blockers and local/demo lookups. A download
+click is not proof of a completed download, a native share completion does not
+prove delivery, and copied links are counted separately. Ad spend, impressions,
+WhatsApp message views and purchases are not measured; campaign tags show visits
+and on-site actions, not financial return on ad spend.
 
 ## Branding and link previews
 

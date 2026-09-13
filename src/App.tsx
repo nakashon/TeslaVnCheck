@@ -16,6 +16,8 @@ import { RecallPanel } from './components/RecallPanel.tsx'
 import type { RecallState } from './components/RecallPanel.tsx'
 import { ShareReport } from './components/ShareReport.tsx'
 import { HistoryPanel } from './components/HistoryPanel.tsx'
+import { AnalyticsConsent } from './components/AnalyticsConsent.tsx'
+import { initializeAnalytics, setAnalyticsPage, trackEvent } from './lib/analytics.ts'
 import './App.css'
 
 const errors: Record<string, string> = {
@@ -58,6 +60,11 @@ export default function App() {
   const batteryUpdate = result ? batteryPresentation(result, replacement, batteryEvidence) : null
 
   useEffect(() => () => request.current?.abort(), [])
+  useEffect(() => {
+    const live = import.meta.env.PROD && ['testmatesla.com', 'www.testmatesla.com'].includes(window.location.hostname)
+    initializeAnalytics(live ? import.meta.env.VITE_GA_MEASUREMENT_ID ?? '' : '', Boolean(shared))
+    setAnalyticsPage(Boolean(shared))
+  }, [shared])
   useEffect(() => {
     function openSharedLink() {
       if (!window.location.hash.startsWith('#report=')) return
@@ -133,6 +140,7 @@ export default function App() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
+    trackEvent('vehicle_lookup_started', { lookup_method: mode })
     reset()
     const controller = new AbortController()
     request.current = controller
@@ -148,9 +156,11 @@ export default function App() {
         // Recall outages must never remove an already available battery assessment.
         void refreshRecalls(value, controller)
       }
+      trackEvent('vehicle_lookup_completed', { lookup_method: mode })
       requestAnimationFrame(() => resultRef.current?.focus())
     } catch (err) {
       if (controller.signal.aborted) return
+      trackEvent('vehicle_lookup_failed', { lookup_method: mode })
       if (err instanceof InputError || err instanceof LookupError) setError(err.code)
       else {
         console.error('Vehicle lookup failed:', err instanceof Error ? err.name : 'UnknownError')
@@ -217,6 +227,7 @@ export default function App() {
       <section className="sources-section" id="sources"><div><span className="eyebrow">מאחורי כל מסקנה יש מקור</span><h2>אפשר לבדוק גם אותנו.</h2><p>תיעוד טסלה, מאגרי מידע רשמיים ודיווחים מקומיים — עם הבחנה בין עובדה, דיווח והשערה.</p><span className="research-date">בסיס המחקר עודכן: <time dateTime={RESEARCH_DATE}>{new Date(`${RESEARCH_DATE}T12:00:00`).toLocaleDateString('he-IL')}</time></span></div><div className="sources-list">{SOURCES.map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer"><span className="source-number">{String(index + 1).padStart(2, '0')}</span><span><strong>{source.title.he}</strong><small>{source.kind.he}</small></span><Icon name="link" size={16} /></a>)}</div></section>
       <details className="method-notes"><summary>איך הבדיקה עובדת, ומה משותף בדוח?</summary><p>המדד סופר ארבעה מאפייני רכב ביחס לקבוצה שנחקרה. הוא אינו מודל הסתברותי, אבחון או אימות מקוריות VIN. החלפת סוללה אינה משנה VIN; מידע על הסוללה המותקנת דורש מסמכי שירות. פרטים מתעודת CoC מוזנים על ידי המשתמש.</p><p>דוח משותף כולל קידומת VIN של 11 תווים, שמזהה מאפייני קבוצה ולא את המספר הסידורי, פרטים שהמשתמש ציין וסיכום ריקולים אם הושלם. הוא אינו חתום או מאומת: נמען יכול לראות סיכום אך צריך לבצע בדיקה עדכנית משלו.</p><p>מספרי רישוי נשלחים ישירות ל־data.gov.il, שמקבל גם את כתובת ה-IP. האתר אינו שומר מזהי רכב או משתמש בכלי אנליטיקה. ברירת המחדל היא מאגר רכבים פעילים; מידע חדש או רכב לא פעיל עשויים להיות חסרים.</p></details>
     </main>
+    <AnalyticsConsent />
     <footer><Brand footer /><p>{SLOGAN}</p><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
   </div>
 }

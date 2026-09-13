@@ -5,6 +5,7 @@ import type { RecallState } from './RecallPanel.tsx'
 import { createReport, reportLink } from '../lib/share.ts'
 import { renderReportImage } from '../lib/report-image.ts'
 import { Icon } from './Icon.tsx'
+import { trackEvent } from '../lib/analytics.ts'
 
 export function ShareReport({ assessment, variant, replacement, batteryEvidence, recalls }: {
   assessment: Assessment; variant: Variant; replacement: Replacement; batteryEvidence: BatteryEvidence; recalls: RecallState
@@ -34,8 +35,10 @@ export function ShareReport({ assessment, variant, replacement, batteryEvidence,
       const image = URL.createObjectURL(blob)
       imageRef.current = image
       setGenerated({ blob, image, link })
+      trackEvent('report_generated')
     } catch (err) {
       if (generation.current !== current) return
+      trackEvent('report_generation_failed')
       console.error('Report image generation failed:', err instanceof Error ? err.name : 'UnknownError')
       setError(true)
       setNotice('לא הצלחנו להפיק את התמונה. אפשר לנסות שוב.')
@@ -48,6 +51,7 @@ export function ShareReport({ assessment, variant, replacement, batteryEvidence,
     if (!generated) return
     try {
       await navigator.clipboard.writeText(generated.link)
+      trackEvent('report_link_copied')
       setError(false)
       setNotice('הקישור הועתק. אפשר לשלוח אותו בוואטסאפ או לצרף למודעה.')
     } catch {
@@ -62,8 +66,10 @@ export function ShareReport({ assessment, variant, replacement, batteryEvidence,
     try {
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: 'דוח הרכב שלי ב־TestMaTesla', text: `בדקתי את מאפייני הטסלה שלי. אפשר לראות את הדוח ולבדוק גם את הרכב שלכם:\n${generated.link}` })
+        trackEvent('report_shared', { method: 'file' })
       } else if (navigator.share) {
         await navigator.share({ title: 'דוח הרכב שלי ב־TestMaTesla', url: generated.link })
+        trackEvent('report_shared', { method: 'link' })
       } else {
         await copyLink()
       }
@@ -78,7 +84,7 @@ export function ShareReport({ assessment, variant, replacement, batteryEvidence,
     <div className="share-heading"><div><span className="eyebrow">המידע שלכם. גם לאחרים.</span><h2 id="share-title">בדקתם? שתפו את התמונה המלאה.</h2><p>דוח זיהוי עם התוצאה, תאריך הבדיקה וקוד QR. לשיתוף עם קונים, חברים או קבוצת הטסלה.</p></div><span className="share-art" aria-hidden="true"><Icon name="scan" size={42} /></span></div>
     <p className="privacy-inline"><Icon name="shield" size={16} />הדוח אינו כולל מספר רישוי או את המספר הסידורי של ה־VIN.</p>
     <button className="primary-button" onClick={generate} disabled={busy}>{busy ? <><span className="spinner" />מפיקים דוח…</> : <><Icon name="plus" size={18} />{generated ? 'הפקת דוח מחדש' : 'הפקת דוח לשיתוף'}</>}</button>
-    {generated && <div className="share-preview"><img src={generated.image} alt="תצוגה מקדימה של דוח זיהוי הרכב לשיתוף, ללא מזהי רכב אישיים" /><div className="share-controls"><h3>הדוח מוכן.</h3><p>הקישור פותח סיכום שנוצר כעת, ומאפשר לנמען לבצע בדיקה משלו. זהו דוח ששיתפתם, לא תעודת תקינות.</p><button className="primary-button" onClick={share}><Icon name="link" size={17} />שיתוף הדוח</button><a className="secondary-button" href={generated.image} download="TestMaTesla-report.png">הורדת תמונה</a><button className="text-button" onClick={copyLink}>העתקת קישור</button><label htmlFor="share-link">קישור לדוח</label><input id="share-link" dir="ltr" readOnly value={generated.link} onFocus={(event) => event.currentTarget.select()} /></div></div>}
+    {generated && <div className="share-preview"><img src={generated.image} alt="תצוגה מקדימה של דוח זיהוי הרכב לשיתוף, ללא מזהי רכב אישיים" /><div className="share-controls"><h3>הדוח מוכן.</h3><p>הקישור פותח סיכום שנוצר כעת, ומאפשר לנמען לבצע בדיקה משלו. זהו דוח ששיתפתם, לא תעודת תקינות.</p><button className="primary-button" onClick={share}><Icon name="link" size={17} />שיתוף הדוח</button><a className="secondary-button" href={generated.image} download="TestMaTesla-report.png" onClick={() => trackEvent('report_download_clicked')}>הורדת תמונה</a><button className="text-button" onClick={copyLink}>העתקת קישור</button><label htmlFor="share-link">קישור לדוח</label><input id="share-link" dir="ltr" readOnly value={generated.link} onFocus={(event) => event.currentTarget.select()} /></div></div>}
     <p className={error ? 'error-message' : 'share-notice'} role={error ? 'alert' : 'status'}>{notice}</p>
   </section>
 }

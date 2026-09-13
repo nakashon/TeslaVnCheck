@@ -12,7 +12,7 @@ test('shared report omits plate and VIN serial while retaining reconstructible c
   assert.ok(!JSON.stringify(report).includes('123456'))
   assert.ok(!JSON.stringify(report).includes(vin))
   const link = reportLink(report, 'https://example.org/TeslaVnCheck/?old=123456#sources')
-  assert.equal(new URL(link).search, '')
+  assert.equal(new URL(link).search, '?utm_source=shared_report&utm_medium=referral&utm_campaign=report-share')
   assert.equal(new URL(link).pathname, '/TeslaVnCheck/')
   assert.deepEqual(parseReport(new URL(link).hash), report)
   assert.equal(assess(report.prefix + '000000', report.variant, report.replacement).status, 'document-supported')

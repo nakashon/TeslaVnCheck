@@ -1,4 +1,12 @@
 .site-shell { max-width: 1232px; padding: 0 40px; margin: auto; }
+.analytics-preferences { border-top: 1px solid #dfe3ea; padding: 18px 0; }
+.analytics-consent { position: fixed; z-index: 30; bottom: 20px; inset-inline-start: 20px; width: min(470px, calc(100vw - 40px)); max-height: calc(100dvh - 40px); overflow: auto; background: white; color: #252933; border: 1px solid #d7dce5; border-radius: 14px; padding: 22px; box-shadow: 0 8px 40px #20283330; }
+.analytics-consent h2 { margin: 0 0 12px; font-size: 20px; }
+.analytics-consent p { font-size: 13px; line-height: 1.8; color: #586477; }
+.analytics-consent a { color: #3155a6; }
+.analytics-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.analytics-actions button { flex: 1; white-space: nowrap; }
+.analytics-storage-notice { font-size: 12px; color: #7c5b24; line-height: 1.8; }
 .skip-link { position: absolute; top: -80px; z-index: 20; padding: 14px; background: white; }
 .skip-link:focus { top: 8px; }
 .site-header { height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 30px; border-bottom: 1px solid #e2e3e8; }

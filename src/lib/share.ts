@@ -2,6 +2,7 @@ import { normalizeVin } from './checker.ts'
 import type { RegistrationEvidence, Replacement, Variant } from './checker.ts'
 import { isBatteryEvidence } from './battery-presentation.ts'
 import type { BatteryEvidence } from './battery-presentation.ts'
+import { tagReportLink } from './analytics-policy.ts'
 
 export interface SharedReport {
   version: 1 | 2 | 3
@@ -24,7 +25,7 @@ export function createReport(vin: string, variant: Variant, replacement: Replace
 
 export function reportLink(report: SharedReport, base: string): string {
   const url = new URL(base)
-  url.search = ''
+  tagReportLink(url)
   url.hash = `report=${btoa(JSON.stringify(report)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')}`
   return url.href
 }
