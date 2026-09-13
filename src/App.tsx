@@ -193,7 +193,7 @@ export default function App() {
   }
 
   return <div className="site-shell">
-    <a className="skip-link" href="#checker">מעבר לבדיקת הרכב</a>
+    <a className="skip-link" href="#identifier">מעבר לשדה בדיקת הרכב</a>
     <header className="site-header">
       <Brand />
       <nav aria-label="ניווט ראשי"><a href="#checker">בדיקת רכב</a><a href="#battery-story">הסיפור של הסוללה</a><a href="#recalls">ריקולים</a><a href="#history">היסטוריה</a><a href="#sources">מקורות</a></nav>
