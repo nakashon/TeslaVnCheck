@@ -39,6 +39,8 @@
 .search-faq details { border-bottom: 1px solid #dfe3ea; padding: 20px 0; scroll-margin-top: 24px; }
 .search-faq summary { cursor: pointer; font-weight: 600; font-size: 16px; line-height: 1.8; }
 .search-faq details a { display: inline-block; color: #3155a6; font-size: 13px; line-height: 1.8; text-underline-offset: 3px; }
+.machine-readable-links { font-size: 12px; line-height: 1.9; color: #59677a; }
+.machine-readable-links a { color: #3155a6; text-underline-offset: 3px; }
 .skip-link { position: absolute; top: -80px; z-index: 20; padding: 14px; background: white; }
 .skip-link:focus { top: 8px; }
 .site-header { height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 30px; border-bottom: 1px solid #e2e3e8; }

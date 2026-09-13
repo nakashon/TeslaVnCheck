@@ -117,8 +117,18 @@ not campaign parameters, report fragments or vehicle-specific pages. No lookup
 results or entered identifiers are emitted into static HTML or structured data.
 Public question anchors are directly linkable and open without a consent modal.
 
-No `llms.txt` or AI-specific schema is required by Google; the focus is readable,
-citable content and normal crawlability, not promises of AI citations or rankings.
+As on [nakashon.com](https://nakashon.com/), the build also publishes
+[`llms.txt`](https://testmatesla.com/llms.txt) and
+[`canon.json`](https://testmatesla.com/canon.json). Both are generated from the
+same project facts, visible FAQ answers and research sources as the website,
+not separately maintained AI-only claims. The JSON record has a versioned shape
+and preserves the research basis date rather than inventing a fresh research
+review on every build. These endpoints contain no vehicle search results.
+Public creator attribution links to the same `https://nakashon.com/#person`
+identity used by the portfolio, without implying employer or Tesla affiliation.
+
+`llms.txt` is an optional retrieval aid, not a Google requirement or a guaranteed
+ranking signal. The focus is readable, citable content and normal crawlability.
 See [Google's AI search guidance](https://developers.google.com/search/docs/appearance/ai-features)
 and [OpenAI's crawler documentation](https://developers.openai.com/api/docs/bots).
 
@@ -146,6 +156,14 @@ Run `npm run build && npm run test:seo` to exercise the production HTML,
 no-JavaScript reading, metadata, CSP hash and interactive/shared-report behavior.
 The existing Playwright accessibility suite continues to run against development
 mode; the SEO suite uses a separate production preview on port 5175.
+
+After deploying a public content update, run `npm run indexnow`. It verifies the
+live public ownership-key file before notifying IndexNow about **only the
+canonical homepage**. It never submits lookup identifiers, report fragments or
+campaign URLs. The ownership key is public, not a secret. HTTP 202 means accepted
+pending ownership verification, not indexed. IndexNow informs participating
+search engines such as Bing; Google does not participate, so Search Console
+setup remains separate.
 
 ## Sharing and privacy
 

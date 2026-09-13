@@ -20,7 +20,7 @@ import { AnalyticsConsent } from './components/AnalyticsConsent.tsx'
 import { PrivacyStatement } from './components/PrivacyStatement.tsx'
 import { AccessibilityStatement } from './components/AccessibilityStatement.tsx'
 import { SearchFaq } from './components/SearchFaq.tsx'
-import { PUBLIC_CONTENT_HASHES } from './lib/seo.ts'
+import { PROJECT, PUBLIC_CONTENT_HASHES } from './lib/seo.ts'
 import { initializeAnalytics, setAnalyticsPage, trackEvent } from './lib/analytics.ts'
 import './App.css'
 
@@ -253,12 +253,13 @@ export default function App() {
       {result && lookup && !lookup.demo && lookup.source !== 'shared' && <ShareReport key={`${lookup.vin}:${variant}:${replacement}:${batteryEvidence}:${recalls.status}:${recalls.status === 'ready' ? recalls.report.checkedAt : ''}`} assessment={result} variant={variant} replacement={replacement} batteryEvidence={batteryEvidence} recalls={recalls} />}
       <BatteryExplainer />
       <SearchFaq />
+      <p className="machine-readable-links">מידע על האתר בפורמט פתוח: <a href={`${import.meta.env.BASE_URL}llms.txt`}>סיכום טקסטואלי</a> · <a href={`${import.meta.env.BASE_URL}canon.json`}>נתוני האתר ב־JSON</a>. הקבצים מתארים את השירות ומקורותיו, ולא מכילים תוצאות של חיפושי רכב.</p>
       <section className="sources-section" id="sources"><div><span className="eyebrow">מאחורי כל מסקנה יש מקור</span><h2>אפשר לבדוק גם אותנו.</h2><p>תיעוד טסלה, מאגרי מידע רשמיים ודיווחים מקומיים — עם הבחנה בין עובדה, דיווח והשערה.</p><span className="research-date">בסיס המחקר עודכן: <time dateTime={RESEARCH_DATE}>{new Date(`${RESEARCH_DATE}T12:00:00`).toLocaleDateString('he-IL')}</time></span></div><div className="sources-list">{SOURCES.map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer"><span className="source-number">{String(index + 1).padStart(2, '0')}</span><span><strong>{source.title.he}</strong><small>{source.kind.he}</small></span><Icon name="link" size={16} /></a>)}</div></section>
       <details className="method-notes"><summary>איך הבדיקה עובדת, ומה משותף בדוח?</summary><p>המדד סופר ארבעה מאפייני רכב ביחס לקבוצה שנחקרה. הוא אינו מודל הסתברותי, אבחון או אימות מקוריות VIN. החלפת סוללה אינה משנה VIN; מידע על הסוללה המותקנת דורש מסמכי שירות. פרטים מתעודת CoC מוזנים על ידי המשתמש.</p><p>דוח משותף כולל קידומת VIN של 11 תווים, שמזהה מאפייני קבוצה ולא את המספר הסידורי, פרטים שהמשתמש ציין וסיכום ריקולים אם הושלם. הוא אינו חתום או מאומת: נמען יכול לראות סיכום אך צריך לבצע בדיקה עדכנית משלו.</p><p>מספרי רישוי נשלחים ישירות ל־data.gov.il, שמקבל גם את כתובת ה-IP. אין אצלנו מאגר חיפושי רכב; מדידת שימוש ב־Google Analytics מופעלת רק בהסכמה. <a href="#privacy">לפרטים בהצהרת הפרטיות.</a> ברירת המחדל היא מאגר רכבים פעילים; מידע חדש או רכב לא פעיל עשויים להיות חסרים.</p></details>
       <PrivacyStatement />
       <AccessibilityStatement />
     </main>
     <AnalyticsConsent />
-    <footer><Brand footer /><p>{SLOGAN}</p><div className="footer-links"><a className="footer-privacy" href="#faq">שאלות נפוצות</a><a className="footer-privacy" href="#privacy">הצהרת פרטיות</a><a className="footer-privacy" href="#accessibility">נגישות האתר</a></div><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
+    <footer><Brand footer /><p>{SLOGAN}</p><div className="footer-links"><a className="footer-privacy" href="#faq">שאלות נפוצות</a><a className="footer-privacy" href="#privacy">הצהרת פרטיות</a><a className="footer-privacy" href="#accessibility">נגישות האתר</a></div><span>פרויקט עצמאי של <a href={PROJECT.creator.url}><bdi>{PROJECT.creator.name}</bdi></a>, ללא שיוך לטסלה או ל־BYD.</span></footer>
   </div>
 }

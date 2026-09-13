@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { test, expect } from '@playwright/test'
-import { FAQS, SITE_URL, STRUCTURED_DATA } from '../src/lib/seo.ts'
+import { FAQS, SITE_CANON, SITE_URL, STRUCTURED_DATA, renderLlmsText } from '../src/lib/seo.ts'
 import { createReport, reportLink } from '../src/lib/share.ts'
 
 test('HTTP response includes public content, canonical metadata and CSP-authorized JSON-LD', async ({ request }) => {
@@ -22,6 +22,16 @@ test('HTTP response includes public content, canonical metadata and CSP-authoriz
   for (const item of FAQS) expect(html).toContain(`id="${item.id}"`)
   expect(await (await request.get('/sitemap.xml')).text()).toContain(`<loc>${SITE_URL}</loc>`)
   expect(await (await request.get('/robots.txt')).text()).toContain('User-agent: OAI-SearchBot')
+  const canon = await request.get('/canon.json')
+  expect(canon.status()).toBe(200)
+  expect(canon.headers()['content-type']).toContain('application/json')
+  expect(await canon.json()).toEqual(SITE_CANON)
+  const textSummary = await request.get('/llms.txt')
+  expect(textSummary.status()).toBe(200)
+  expect(textSummary.headers()['content-type']).toContain('text/plain')
+  expect(await textSummary.text()).toBe(renderLlmsText())
+  expect(html).toContain('href="./canon.json"')
+  expect(html).toContain('href="./llms.txt"')
 })
 
 test('without JavaScript, visitors can read the same FAQ answers and government sources', async ({ browser }) => {

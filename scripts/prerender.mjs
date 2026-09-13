@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createServer } from 'vite'
-import { STRUCTURED_DATA } from '../src/lib/seo.ts'
+import { SITE_CANON, STRUCTURED_DATA, renderLlmsText } from '../src/lib/seo.ts'
 
 const server = await createServer({
   server: { middlewareMode: true, hmr: false, watch: null },
@@ -24,7 +24,9 @@ try {
     .replace('<div id="root"></div>', `<div id="root">${markup}</div>`)
     .replace("script-src 'self'", `script-src 'self' 'sha256-${hash}'`)
     .replace('</head>', `<script id="site-structured-data" type="application/ld+json">${json}</script>\n</head>`))
-  console.log('Prerendered public homepage and matching structured data.')
+  await writeFile(new URL('../dist/canon.json', import.meta.url), JSON.stringify(SITE_CANON, null, 2) + '\n')
+  await writeFile(new URL('../dist/llms.txt', import.meta.url), renderLlmsText())
+  console.log('Prerendered public homepage, structured data, canon.json and llms.txt.')
 } finally {
   await server.close()
 }
