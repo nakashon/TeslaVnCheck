@@ -1,19 +1,23 @@
 import { normalizeVin } from './checker.ts'
 import type { RegistrationEvidence, Replacement, Variant } from './checker.ts'
+import { isBatteryEvidence } from './battery-presentation.ts'
+import type { BatteryEvidence } from './battery-presentation.ts'
 
 export interface SharedReport {
-  version: 1 | 2
+  version: 1 | 2 | 3
   prefix: string
   variant: Variant
   replacement: Replacement
   createdAt: string
   recall: { count: number; checkedAt: string; truncated: boolean } | null
   registration?: RegistrationEvidence
+  batteryEvidence?: BatteryEvidence
 }
 
-export function createReport(vin: string, variant: Variant, replacement: Replacement, recall: SharedReport['recall'] = null, registration: RegistrationEvidence | null = null): SharedReport {
+export function createReport(vin: string, variant: Variant, replacement: Replacement, recall: SharedReport['recall'] = null, registration: RegistrationEvidence | null = null, batteryEvidence: BatteryEvidence = 'unknown'): SharedReport {
+  if (!isBatteryEvidence(batteryEvidence) || (batteryEvidence.startsWith('replacement-') && replacement !== 'yes')) throw new Error('invalid_battery_evidence')
   return {
-    version: 2, prefix: normalizeVin(vin).slice(0, 11), variant, replacement, createdAt: new Date().toISOString(), recall,
+    version: 3, prefix: normalizeVin(vin).slice(0, 11), variant, replacement, batteryEvidence, createdAt: new Date().toISOString(), recall,
     ...(registration ? { registration: { year: registration.year, drive: registration.drive } } : {}),
   }
 }
@@ -39,7 +43,7 @@ export function parseReport(hash: string): SharedReport | null {
   const encoded = hash.slice(8)
   if (encoded.length > 1800 || !/^[A-Za-z0-9_-]+$/.test(encoded)) throw new Error('invalid_report')
   const value: unknown = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')))
-  if (!isRecord(value) || (value.version !== 1 && value.version !== 2) || typeof value.prefix !== 'string' ||
+  if (!isRecord(value) || (value.version !== 1 && value.version !== 2 && value.version !== 3) || typeof value.prefix !== 'string' ||
     value.prefix.length !== 11 || normalizeVin(value.prefix + '000000').slice(0, 11) !== value.prefix ||
     !['unknown', 'Y7CR', 'other'].includes(String(value.variant)) ||
     !['unknown', 'no', 'yes'].includes(String(value.replacement)) || !validDate(value.createdAt)) {
@@ -47,6 +51,12 @@ export function parseReport(hash: string): SharedReport | null {
   }
   if (value.variant !== 'unknown' && value.variant !== 'Y7CR' && value.variant !== 'other') throw new Error('invalid_report')
   if (value.replacement !== 'unknown' && value.replacement !== 'no' && value.replacement !== 'yes') throw new Error('invalid_report')
+  let batteryEvidence: BatteryEvidence | undefined
+  if (value.version === 3) {
+    if (!isBatteryEvidence(value.batteryEvidence) ||
+      (value.batteryEvidence.startsWith('replacement-') && value.replacement !== 'yes')) throw new Error('invalid_report')
+    batteryEvidence = value.batteryEvidence
+  } else if (value.batteryEvidence !== undefined) throw new Error('invalid_report')
   let recall: SharedReport['recall'] = null
   if (value.recall !== null) {
     if (!isRecord(value.recall) || typeof value.recall.count !== 'number' || !Number.isInteger(value.recall.count) ||
@@ -59,12 +69,12 @@ export function parseReport(hash: string): SharedReport | null {
   let registration: RegistrationEvidence | undefined
   if (value.registration !== undefined) {
     const raw = value.registration
-    if (value.version !== 2 || !isRecord(raw) ||
+    if (value.version === 1 || !isRecord(raw) ||
       (raw.year !== null && (typeof raw.year !== 'number' || !Number.isInteger(raw.year) || raw.year < 1900 || raw.year > 2099)) ||
       (raw.drive !== 'rwd' && raw.drive !== 'awd' && raw.drive !== 'unknown')) throw new Error('invalid_report')
     registration = { year: raw.year, drive: raw.drive }
   }
-  return { version: value.version, prefix: value.prefix, variant: value.variant, replacement: value.replacement, createdAt: value.createdAt, recall, ...(registration ? { registration } : {}) }
+  return { version: value.version, prefix: value.prefix, variant: value.variant, replacement: value.replacement, createdAt: value.createdAt, recall, ...(registration ? { registration } : {}), ...(batteryEvidence ? { batteryEvidence } : {}) }
 }
 
 export function readInitialReport(hash: string): { report: SharedReport | null; invalid: boolean } {

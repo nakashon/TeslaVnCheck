@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { assess, InputError, normalizePlate, normalizeVin, registrationEvidence, RESEARCH_DATE, SOURCES } from './lib/checker.ts'
 import type { Replacement, Variant } from './lib/checker.ts'
+import { batteryPresentation } from './lib/battery-presentation.ts'
+import type { BatteryEvidence } from './lib/battery-presentation.ts'
 import { lookupPlate, LookupError } from './lib/govil.ts'
 import type { Vehicle } from './lib/govil.ts'
 import { lookupRecalls } from './lib/recalls.ts'
@@ -44,12 +46,14 @@ export default function App() {
     ? { vin: initial.report.prefix + '000000', plate: null, demo: false, vehicle: null, source: 'shared' } : null)
   const [variant, setVariant] = useState<Variant>(initial.report?.variant ?? 'unknown')
   const [replacement, setReplacement] = useState<Replacement>(initial.report?.replacement ?? 'unknown')
+  const [batteryEvidence, setBatteryEvidence] = useState<BatteryEvidence>(initial.report?.batteryEvidence ?? 'unknown')
   const [recalls, setRecalls] = useState<RecallState>({ status: 'idle' })
   const request = useRef<AbortController | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const resultRef = useRef<HTMLElement | null>(null)
   const registration = lookup?.vehicle ? registrationEvidence(lookup.vehicle.year, lookup.vehicle.trim) : shared?.registration ?? null
   const result = lookup ? assess(lookup.vin, variant, replacement, registration) : null
+  const batteryUpdate = result ? batteryPresentation(result, replacement, batteryEvidence) : null
 
   useEffect(() => () => request.current?.abort(), [])
   useEffect(() => {
@@ -66,6 +70,7 @@ export default function App() {
       setLookup(next.report ? { vin: next.report.prefix + '000000', plate: null, demo: false, vehicle: null, source: 'shared' } : null)
       setVariant(next.report?.variant ?? 'unknown')
       setReplacement(next.report?.replacement ?? 'unknown')
+      setBatteryEvidence(next.report?.batteryEvidence ?? 'unknown')
       setRecalls({ status: 'idle' })
     }
     window.addEventListener('hashchange', openSharedLink)
@@ -82,6 +87,7 @@ export default function App() {
     setInvalidShare(false)
     setVariant('unknown')
     setReplacement('unknown')
+    setBatteryEvidence('unknown')
     setRecalls({ status: 'idle' })
     if (window.location.hash.startsWith('#report=')) window.history.replaceState(null, '', window.location.pathname + window.location.search)
   }
@@ -91,6 +97,16 @@ export default function App() {
     setMode(value)
     setInput('')
     inputRef.current?.focus()
+  }
+
+  function changeReplacement(value: Replacement) {
+    setReplacement(value)
+    if (value !== 'yes' && batteryEvidence.startsWith('replacement-')) setBatteryEvidence('unknown')
+  }
+
+  function changeBatteryEvidence(value: BatteryEvidence) {
+    setBatteryEvidence(value)
+    if (value.startsWith('replacement-')) setReplacement('yes')
   }
 
   async function refreshRecalls(plate: string, controller: AbortController) {
@@ -184,8 +200,8 @@ export default function App() {
           {result && lookup ? <>
             <div className="vehicle-strip"><div><span className="eyebrow">{lookup.demo ? 'דוגמה פיקטיבית' : lookup.source === 'shared' ? 'סיכום ששיתף משתמש' : lookup.source === 'plate' ? 'זוהה לפי מאגר משרד התחבורה' : 'פרטים מפענוח VIN'}</span><h2><bdi>{result.decoded.model ?? lookup.vehicle?.model ?? 'פרטי הרכב'}</bdi><span>{result.profileYear ?? ''}</span></h2></div><Icon name="car" size={38} /></div>
             <p className="vehicle-year-source">{registration?.year != null ? <>{lookup.source === 'shared' ? 'שנת ייצור בנתונים ששותפו' : 'שנת ייצור במאגר'}: {registration.year} · </> : null}שנה לפי VIN: {result.decoded.year ?? 'לא זוהתה'}{lookup.vehicle?.firstRoadDate && <> · עלייה לכביש במאגר: <bdi>{lookup.vehicle.firstRoadDate}</bdi></>}</p>
-            <div className="vehicle-facts"><div><span>מפעל</span><strong>{factoryNames[result.decoded.factory ?? ''] ?? 'לא זוהה'}</strong></div><div><span>{registration?.drive && registration.drive !== 'unknown' ? lookup.source === 'shared' ? 'הנעה בנתונים ששותפו' : 'הנעה לפי הרישום' : 'הנעה'}</span><strong>{result.profileDrive === 'rwd' ? 'אחורית' : result.profileDrive === 'awd' ? 'כפולה' : 'נדרש מידע נוסף'}</strong></div><div><span>זהות הסוללה</span><strong>{replacement === 'yes' ? 'מארז חלופי — נדרש זיהוי' : result.status === 'conflicting' ? 'פרטים סותרים — נדרש בירור' : result.status === 'document-supported' ? 'BYD לפי הקוד שהוזן' : 'נדרש מסמך זיהוי'}</strong></div></div>
-            <BatteryResult key={`${lookup.vin}-${lookup.source}`} result={result} plate={lookup.plate} demo={lookup.demo} variant={variant} replacement={replacement} setVariant={setVariant} setReplacement={setReplacement} readOnly={lookup.source === 'shared'} />
+            <div className="vehicle-facts"><div><span>מפעל</span><strong>{factoryNames[result.decoded.factory ?? ''] ?? 'לא זוהה'}</strong></div><div><span>{registration?.drive && registration.drive !== 'unknown' ? lookup.source === 'shared' ? 'הנעה בנתונים ששותפו' : 'הנעה לפי הרישום' : 'הנעה'}</span><strong>{result.profileDrive === 'rwd' ? 'אחורית' : result.profileDrive === 'awd' ? 'כפולה' : 'נדרש מידע נוסף'}</strong></div><div><span>זהות הסוללה</span><strong>{batteryUpdate?.updated ? batteryUpdate.title : result.status === 'conflicting' ? 'פרטים סותרים — נדרש בירור' : result.status === 'document-supported' ? 'BYD לפי הקוד שהוזן' : 'נדרש מסמך זיהוי'}</strong></div></div>
+            <BatteryResult key={`${lookup.vin}-${lookup.source}`} result={result} plate={lookup.plate} demo={lookup.demo} variant={variant} replacement={replacement} batteryEvidence={batteryEvidence} setVariant={setVariant} setReplacement={changeReplacement} setBatteryEvidence={changeBatteryEvidence} readOnly={lookup.source === 'shared'} />
             {lookup.vehicle && <details className="registration-details"><summary>פרטי הרישום</summary><p>יצרן במאגר: {lookup.vehicle.make ?? 'לא צוין'} · קוד דגם: {lookup.vehicle.modelCode ?? 'לא צוין'} · הוראת רישום: {lookup.vehicle.directive ?? 'לא צוינה'}</p><p>מספרים אלה מוצגים לזיהוי הרשומה; הם אינם מיפוי מאומת לספק סוללה.</p></details>}
           </> : <div className="empty-assessment"><div className="empty-topline"><span className="eyebrow">ממספר רכב לתמונה ברורה</span><Icon name="scan" size={26} /></div><h2>לא עוד ניחוש<br />לפי שנת הדגם.</h2><p>משווים ארבעה מאפיינים לקבוצת הדגם שבמוקד דיווחי הסוללה, ומראים מה תואם ומה שונה.</p><div className="preview-criteria"><span>דגם</span><span>מפעל</span><span>שנת ייצור</span><span>הנעה</span></div><div className="result-legend"><span><i data-tone="attention" />תואם לקבוצה</span><span><i data-tone="clear" />מחוץ לקבוצה</span><span><i data-tone="uncertain" />נדרש בירור</span></div><a href="#battery-story" className="text-link">מהי קבוצת הדגם שנבדקת? <Icon name="arrow" size={15} /></a></div>}
         </section>
@@ -194,7 +210,7 @@ export default function App() {
       {shared && <div className="shared-recall-note"><Icon name="info" size={20} /><div><strong>ריקולים בסיכום ששיתף המשתמש</strong><p>{shared.recall ? `${shared.recall.count}${shared.recall.truncated ? '+' : ''} קריאות במאגר לפי הדוח שנוצר. מועד השאילתה שצוין: ${new Date(shared.recall.checkedAt).toLocaleString('he-IL')}.` : 'לא נכללה בדיקת ריקולים בסיכום.'} זהו מידע מתוך הקישור ולא תוצאה שנשלפה כעת. התחילו בדיקה לפי מספר רישוי לקבלת מידע עדכני.</p></div></div>}
       <RecallPanel state={recalls} hasPlate={Boolean(lookup?.plate)} demo={Boolean(lookup?.demo)} onRetry={retryRecalls} onPlate={() => chooseMode('plate')} />
       <HistoryPanel plate={lookup?.plate ?? null} vehicle={lookup?.vehicle ?? null} demo={Boolean(lookup?.demo)} onPlate={() => chooseMode('plate')} />
-      {result && lookup && !lookup.demo && lookup.source !== 'shared' && <ShareReport key={`${lookup.vin}:${variant}:${replacement}:${recalls.status}:${recalls.status === 'ready' ? recalls.report.checkedAt : ''}`} assessment={result} variant={variant} replacement={replacement} recalls={recalls} />}
+      {result && lookup && !lookup.demo && lookup.source !== 'shared' && <ShareReport key={`${lookup.vin}:${variant}:${replacement}:${batteryEvidence}:${recalls.status}:${recalls.status === 'ready' ? recalls.report.checkedAt : ''}`} assessment={result} variant={variant} replacement={replacement} batteryEvidence={batteryEvidence} recalls={recalls} />}
       <BatteryExplainer />
       <section className="sources-section" id="sources"><div><span className="eyebrow">מאחורי כל מסקנה יש מקור</span><h2>אפשר לבדוק גם אותנו.</h2><p>תיעוד טסלה, מאגרי מידע רשמיים ודיווחים מקומיים — עם הבחנה בין עובדה, דיווח והשערה.</p><span className="research-date">בסיס המחקר עודכן: <time dateTime={RESEARCH_DATE}>{new Date(`${RESEARCH_DATE}T12:00:00`).toLocaleDateString('he-IL')}</time></span></div><div className="sources-list">{SOURCES.map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer"><span className="source-number">{String(index + 1).padStart(2, '0')}</span><span><strong>{source.title.he}</strong><small>{source.kind.he}</small></span><Icon name="link" size={16} /></a>)}</div></section>
       <details className="method-notes"><summary>איך הבדיקה עובדת, ומה משותף בדוח?</summary><p>המדד סופר ארבעה מאפייני רכב ביחס לקבוצה שנחקרה. הוא אינו מודל הסתברותי, אבחון או אימות מקוריות VIN. החלפת סוללה אינה משנה VIN; מידע על הסוללה המותקנת דורש מסמכי שירות. פרטים מתעודת CoC מוזנים על ידי המשתמש.</p><p>דוח משותף כולל קידומת VIN של 11 תווים, שמזהה מאפייני קבוצה ולא את המספר הסידורי, פרטים שהמשתמש ציין וסיכום ריקולים אם הושלם. הוא אינו חתום או מאומת: נמען יכול לראות סיכום אך צריך לבצע בדיקה עדכנית משלו.</p><p>מספרי רישוי נשלחים ישירות ל־data.gov.il, שמקבל גם את כתובת ה-IP. האתר אינו שומר מזהי רכב או משתמש בכלי אנליטיקה. ברירת המחדל היא מאגר רכבים פעילים; מידע חדש או רכב לא פעיל עשויים להיות חסרים.</p></details>

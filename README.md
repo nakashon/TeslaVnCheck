@@ -105,6 +105,14 @@ Reports are generated locally. Their links contain a compact snapshot in the
 Shared reports are **unsigned user-generated summaries**, not live registry
 responses or Tesla-issued certificates. The recipient can start their own lookup.
 
+**Blue battery updates** distinguish a reported replacement or a documented
+different installed pack from the original red/green model-profile result, in
+both the page and PNG. Owners can state the evidence category (Tesla confirmation,
+service document, or an identified pack part number); only that category is
+shared, not the document. The site does not authenticate the evidence or label
+a replacement as a proven repair. Original profile counts and conflicts remain
+visible. An unfamiliar CoC code alone does not trigger blue.
+
 The separate CoC request letter for Tesla is prefilled with the full VIN and,
 when available, the registration number from the current lookup. It is only
 copied on request, never sent automatically, and is intended for private contact
@@ -204,11 +212,11 @@ or importer confirmation. Component-level EU declarations are not vehicle CoCs.
 The site neither requests documents on an owner's behalf nor accepts Tesla
 credentials.
 
-Version 2 report links preserve available registration year/drive evidence so
-shared pages and images retain conflicts. Version 1 links remain readable; older
-clients reject version 2 rather than silently dropping its evidence. Report
-parsing validates identifiers, enums, dates and recall counts. Fictional examples
-cannot generate shareable reports.
+Version 3 report links preserve the battery evidence category as well as available
+registration year/drive evidence. Version 1 and 2 links remain readable; older
+clients reject version 3 rather than silently dropping its evidence. Report
+parsing validates identifiers, enums, dates, recall counts and contradictory
+replacement/document answers. Fictional examples cannot generate shareable reports.
 
 </details>
 

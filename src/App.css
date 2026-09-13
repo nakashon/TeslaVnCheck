@@ -63,6 +63,7 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; 
 [data-tone=clear] { --accent: #13764b; --wash: #edf8f2; --line: #bcdccb; --soft: #d5eddf; }
 [data-tone=uncertain] { --accent: #a35e06; --wash: #fff7e9; --line: #ecd3aa; --soft: #f7e6c8; }
 [data-tone=neutral] { --accent: #525e73; --wash: #f5f6f9; --line: #dde1e9; --soft: #e8ebf2; }
+[data-tone=updated] { --accent: #3155a6; --wash: #edf2ff; --line: #bdccec; --soft: #dce6ff; }
 .input-privacy { border-top: 1px solid #eceef3; padding-top: 17px; margin-top: 20px; display: flex; align-items: flex-start; gap: 8px; color: #7c8390; }
 .input-privacy p { font-size: 11px; line-height: 1.8; margin: 0; }
 .assessment-area { min-width: 0; outline-offset: 7px; }
@@ -127,7 +128,9 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; 
 .audience-tabs button[aria-pressed=true] { background: white; color: #293548; box-shadow: 0 1px 4px #20305012; }
 .next-steps p { font-size: 13px; line-height: 1.9; color: #525e70; margin-bottom: 0; }
 .result-footnote { font-size: 10px; line-height: 1.8; margin: 19px 0 0; color: #707b8d; }
-.replacement-note { display: flex; align-items: flex-start; gap: 10px; padding: 14px; background: #fff5d9; border: 1px solid #e8d19d; border-radius: 6px; color: #8b610f; margin-top: 15px; }
+.replacement-note { display: flex; align-items: flex-start; gap: 10px; padding: 14px; background: #edf2ff; border: 1px solid #bdccec; border-radius: 6px; color: #3155a6; margin-top: 15px; }
+.battery-update { padding: 14px; background: var(--wash); border: 1px solid var(--line); border-radius: 6px; color: var(--accent); margin-bottom: 15px; }
+.battery-update p { margin: 0; font-size: 13px; line-height: 1.8; }
 .replacement-note p { margin: 0; font-size: 12px; line-height: 1.8; }
 .registration-details { padding: 14px 3px; font-size: 11px; color: #7a8290; line-height: 1.8; }
 .registration-details summary { cursor: pointer; }

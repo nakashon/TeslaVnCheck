@@ -1,12 +1,14 @@
 import QRCode from 'qrcode'
-import { assess, assessmentTone } from './checker.ts'
+import { assess } from './checker.ts'
+import { batteryPresentation } from './battery-presentation.ts'
 import type { SharedReport } from './share.ts'
 
 export async function renderReportImage(report: SharedReport, link: string): Promise<Blob> {
   const result = assess(report.prefix + '000000', report.variant, report.replacement, report.registration)
-  const tone = assessmentTone(result.status)
-  const color = { attention: '#bb253b', clear: '#14764c', uncertain: '#a45e06' }[tone]
-  const background = { attention: '#fff0f2', clear: '#ecf8f1', uncertain: '#fff7e7' }[tone]
+  const presentation = batteryPresentation(result, report.replacement, report.batteryEvidence)
+  const tone = presentation.tone
+  const color = { attention: '#bb253b', clear: '#14764c', uncertain: '#a45e06', updated: '#3155a6' }[tone]
+  const background = { attention: '#fff0f2', clear: '#ecf8f1', uncertain: '#fff7e7', updated: '#edf2ff' }[tone]
   const titles = {
     candidate: 'תואם לקבוצת הדגם המדווחת',
     'document-supported': 'תצורת BYD נתמכת בפרטים שהוזנו',
@@ -42,16 +44,16 @@ export async function renderReportImage(report: SharedReport, link: string): Pro
   context.fillRect(64, 367, 952, 330)
   context.fillStyle = color
   context.fillRect(1008, 367, 8, 330)
-  text(titles[result.status], 960, 440, 37, color, true)
+  text(presentation.updated ? presentation.title : titles[result.status], 960, 440, 37, color, true)
   context.direction = 'ltr'
   context.textAlign = 'left'
   text(`${result.profileMatch.matched} / ${result.profileMatch.total}`, 113, 567, 94, color, true)
   context.direction = 'rtl'
   context.textAlign = 'right'
-  text('מאפייני הדגם תואמים', 960, 554, 30, '#252832', true)
-  text('ספירת מאפיינים, לא אחוז סיכון לתקלה', 960, 647, 26, '#666b77')
-  text(`זהות הסוללה: ${report.variant === 'Y7CR' ? 'קוד Y7CR נמסר על ידי המשתף' : 'נדרש מסמך זיהוי סוללה'}`, 1016, 765, 28, '#252832')
-  text(`החלפת סוללה: ${report.replacement === 'yes' ? 'דווחה החלפה — המארז הנוכחי דורש זיהוי' : report.replacement === 'no' ? 'המשתף ציין שהמארז מקורי' : 'לא נמסר מידע'}`, 1016, 814, 26, '#666b77')
+  text(presentation.updated ? 'מאפייני הדגם המקורי תואמים' : 'מאפייני הדגם תואמים', 960, 554, 30, '#252832', true)
+  text(presentation.updated && result.status === 'conflicting' ? 'נתוני הדגם סותרים — נדרש בירור נפרד' : 'ספירת מאפיינים, לא אחוז סיכון לתקלה', 960, 647, 26, '#666b77')
+  text(presentation.updated ? `הבסיס שצוין: ${presentation.evidenceLabel}` : `זהות הסוללה: ${report.variant === 'Y7CR' ? 'קוד Y7CR נמסר על ידי המשתף' : 'נדרש מסמך זיהוי סוללה'}`, 1016, 765, 28, '#252832')
+  text(presentation.updated ? report.batteryEvidence?.startsWith('other-') ? 'לפי הדיווח: המארז הנוכחי אינו מארז BYD שבמוקד.' : 'החלפה אינה קובעת את זהות המארז או פתרון התקלה.' : `החלפת סוללה: ${report.replacement === 'no' ? 'המשתף ציין שהמארז מקורי' : 'לא נמסר מידע'}`, 1016, 814, 26, '#666b77')
   const recallText = report.recall
     ? `ריקולים במועד הבדיקה: ${report.recall.count}${report.recall.truncated ? '+ (מידע חלקי)' : ' שנמצאו במאגר'}`
     : 'ריקולים: לא נכללה בדיקה בדוח'
@@ -63,6 +65,6 @@ export async function renderReportImage(report: SharedReport, link: string): Pro
   text('ומה עם הטסלה שלכם?', 1016, 1042, 39, '#191b22', true)
   text('סרקו לצפייה בדוח ולבדיקת הרכב שלכם.', 1016, 1099, 29, '#666b77')
   text('מספר הרישוי והמספר הסידורי של ה-VIN אינם משותפים.', 1016, 1249, 25, '#666b77')
-  text('סיכום ששיתף משתמש. אינו תעודת תקינות או אימות של טסלה.', 1016, 1297, 25, '#666b77')
+  text(presentation.updated ? 'דיווח משתמש; המסמך לא נבדק באתר. אינו אישור תקינות.' : 'סיכום ששיתף משתמש. אינו תעודת תקינות או אימות של טסלה.', 1016, 1297, 25, '#666b77')
   return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('image_export_failed')), 'image/png'))
 }

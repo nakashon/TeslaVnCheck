@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Assessment, Replacement, Variant } from '../lib/checker.ts'
+import type { BatteryEvidence } from '../lib/battery-presentation.ts'
 import type { RecallState } from './RecallPanel.tsx'
 import { createReport, reportLink } from '../lib/share.ts'
 import { renderReportImage } from '../lib/report-image.ts'
 import { Icon } from './Icon.tsx'
 
-export function ShareReport({ assessment, variant, replacement, recalls }: {
-  assessment: Assessment; variant: Variant; replacement: Replacement; recalls: RecallState
+export function ShareReport({ assessment, variant, replacement, batteryEvidence, recalls }: {
+  assessment: Assessment; variant: Variant; replacement: Replacement; batteryEvidence: BatteryEvidence; recalls: RecallState
 }) {
   const [busy, setBusy] = useState(false)
   const [generated, setGenerated] = useState<{ blob: Blob; image: string; link: string } | null>(null)
@@ -25,7 +26,7 @@ export function ShareReport({ assessment, variant, replacement, recalls }: {
     setNotice('')
     try {
       const summary = recalls.status === 'ready' ? { count: recalls.report.items.length, checkedAt: recalls.report.checkedAt, truncated: recalls.report.truncated } : null
-      const report = createReport(assessment.decoded.vin, variant, replacement, summary, assessment.registration)
+      const report = createReport(assessment.decoded.vin, variant, replacement, summary, assessment.registration, batteryEvidence)
       const link = reportLink(report, window.location.href)
       const blob = await renderReportImage(report, link)
       if (generation.current !== current) return

@@ -51,10 +51,10 @@ test('extraneous untrusted fields are not propagated to the public report', () =
   const report = createReport(vin, 'unknown', 'no')
   assert.deepEqual(parseReport(encoded({ ...report, fullVin: vin, owner: '<script>test</script>', validated: true })), report)
 })
-test('v2 shared reports preserve registration conflicts without carrying a plate or full VIN', () => {
+test('v3 shared reports preserve registration conflicts without carrying a plate or full VIN', () => {
   const vin = 'XP7YGCES0SB123456'
   const report = createReport(vin, 'unknown', 'unknown', null, { year: 2024, drive: 'rwd' })
-  assert.equal(report.version, 2)
+  assert.equal(report.version, 3)
   const parsed = parseReport(encoded(report))
   assert.ok(parsed)
   assert.deepEqual(parsed, report)
@@ -66,12 +66,40 @@ test('v2 shared reports preserve registration conflicts without carrying a plate
   assert.ok(!JSON.stringify(parsed).includes('123456'))
 })
 test('legacy reports remain readable; unsupported versions or invalid evidence are rejected', () => {
-  const legacy = { ...createReport(vin, 'unknown', 'no'), version: 1 }
+  const legacy = { version: 1, prefix: vin.slice(0, 11), variant: 'unknown', replacement: 'no', createdAt: new Date().toISOString(), recall: null }
   assert.deepEqual(parseReport(encoded(legacy)), legacy)
+  const v2 = { ...legacy, version: 2, registration: { year: 2024, drive: 'rwd' } }
+  assert.deepEqual(parseReport(encoded(v2)), v2)
   const report = createReport(vin, 'unknown', 'no')
   for (const registration of [null, {}, { year: '2024', drive: 'rwd' }, { year: 2024.5, drive: 'rwd' }, { year: 99999, drive: 'rwd' }, { year: 2024, drive: '4x2' }]) {
     assert.equal(readInitialReport(encoded({ ...report, registration })).invalid, true)
   }
-  assert.equal(readInitialReport(encoded({ ...report, version: 3 })).invalid, true)
+  assert.equal(readInitialReport(encoded({ ...report, version: 4 })).invalid, true)
   assert.equal(readInitialReport(encoded({ ...legacy, registration: { year: 2024, drive: 'rwd' } })).invalid, true)
+})
+
+test('v3 carries only the reported battery evidence category, not documents or identifiers', () => {
+  for (const batteryEvidence of ['unknown', 'replacement-invoice', 'replacement-tesla', 'other-tesla', 'other-invoice', 'other-label'] as const) {
+    const report = createReport(vin, 'Y7CR', 'yes', null, null, batteryEvidence)
+    const parsed = parseReport(encoded({ ...report, document: 'private document', plate: '12345678', fullVin: vin }))
+    assert.deepEqual(parsed, report)
+    assert.equal(parsed?.batteryEvidence, batteryEvidence)
+    assert.ok(!JSON.stringify(parsed).includes('private document'))
+    assert.ok(!JSON.stringify(parsed).includes(vin))
+    assert.ok(!JSON.stringify(parsed).includes('12345678'))
+  }
+})
+
+test('invalid or contradictory battery evidence cannot generate a resolved-looking report', () => {
+  const report = createReport(vin, 'unknown', 'yes', null, null, 'replacement-invoice')
+  for (const batteryEvidence of [undefined, null, {}, 'verified', 'other', 1]) {
+    assert.equal(readInitialReport(encoded({ ...report, batteryEvidence })).invalid, true)
+  }
+  for (const replacement of ['unknown', 'no'] as const) {
+    assert.equal(readInitialReport(encoded({ ...report, replacement })).invalid, true)
+    assert.throws(() => createReport(vin, 'unknown', replacement, null, null, 'replacement-tesla'))
+  }
+  for (const version of [1, 2]) {
+    assert.equal(readInitialReport(encoded({ ...report, version })).invalid, true)
+  }
 })

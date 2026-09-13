@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { assessmentTone } from '../lib/checker.ts'
 import type { Assessment, Replacement, Status, Variant } from '../lib/checker.ts'
+import { BATTERY_EVIDENCE_LABELS, batteryPresentation, isBatteryEvidence } from '../lib/battery-presentation.ts'
+import type { BatteryEvidence } from '../lib/battery-presentation.ts'
 import { Icon } from './Icon.tsx'
 import { CocHelp } from './CocHelp.tsx'
 
@@ -34,32 +35,36 @@ const copy: Record<Status, { label: string; title: string; detail: string }> = {
 
 const labels = { model: 'מודל Y', factory: 'ייצור ברלין', year: 'שנות ייצור 2023–2024', drive: 'הנעה אחורית' }
 
-export function BatteryResult({ result, plate, demo, variant, replacement, setVariant, setReplacement, readOnly = false }: {
+export function BatteryResult({ result, plate, demo, variant, replacement, batteryEvidence, setVariant, setReplacement, setBatteryEvidence, readOnly = false }: {
   result: Assessment
   plate: string | null
   demo: boolean
   variant: Variant
   replacement: Replacement
+  batteryEvidence: BatteryEvidence
   setVariant: (value: Variant) => void
   setReplacement: (value: Replacement) => void
+  setBatteryEvidence: (value: BatteryEvidence) => void
   readOnly?: boolean
 }) {
   const [audience, setAudience] = useState<'buyer' | 'owner'>('buyer')
-  const tone = assessmentTone(result.status)
+  const presentation = batteryPresentation(result, replacement, batteryEvidence)
+  const tone = presentation.tone
   const text = copy[result.status]
   const title = result.yearConflict
     ? result.criteria.some(item => item.match === false) ? 'יש פער בין שנת הרישום לשנת ה־VIN.' : 'הרכב עשוי להשתייך לקבוצה — יש פער בשנים.'
     : text.title
   return <section className="battery-result" data-tone={tone} aria-labelledby="battery-result-title">
     <div className="result-intro">
-      <span className="outcome-badge"><Icon name={tone === 'clear' ? 'check' : 'info'} size={16} />{text.label}</span>
+      <span className="outcome-badge"><Icon name={tone === 'clear' ? 'check' : 'info'} size={16} />{presentation.updated ? 'עדכון מצב הסוללה' : text.label}</span>
       <span className="section-index">01 / סוללה</span>
     </div>
-    <h2 id="battery-result-title">{title}</h2>
-    <p className="result-summary">{result.yearConflict ? `שנת הייצור בנתוני הרישום היא ${result.registration?.year}, אך שנת ה־VIN מפוענחת כ־${result.decoded.year}. אין לשלול את הרכב על סמך שנת ה־VIN בלבד. נדרש מסמך ייצור או זיהוי של מארז הסוללה.` : result.driveConflict ? 'סוג ההנעה ברישום אינו תואם לפענוח ה־VIN. השוו למסמכי הרכב לפני קביעת התאמה.' : text.detail}</p>
+    <h2 id="battery-result-title">{presentation.updated ? presentation.title : title}</h2>
+    {presentation.updated && <div className="battery-update"><p>{presentation.detail}</p><p><strong>הבסיס שצוין:</strong> {presentation.evidenceLabel}. {batteryEvidence !== 'unknown' ? 'המשתף ציין שיש בידיו מסמך; האתר לא בדק אותו.' : 'המידע מבוסס על דיווח בלבד.'}</p></div>}
+    <p className="result-summary">{presentation.updated && <strong>תצורת הרכב המקורית: </strong>}{result.yearConflict ? `שנת הייצור בנתוני הרישום היא ${result.registration?.year}, אך שנת ה־VIN מפוענחת כ־${result.decoded.year}. אין לשלול את הרכב על סמך שנת ה־VIN בלבד. נדרש מסמך ייצור או זיהוי של מארז הסוללה.` : result.driveConflict ? 'סוג ההנעה ברישום אינו תואם לפענוח ה־VIN. השוו למסמכי הרכב לפני קביעת התאמה.' : presentation.updated ? text.title : text.detail}</p>
     {result.profileYear !== null && result.profileYear > 2024 && !result.yearConflict && <p className="inline-warning">השנה מחוץ לחלון המחקר המרכזי, אך אינה גבול מאומת של אצווה פגומה. אין די בשנת הייצור כדי לשלול השתייכות.</p>}
     <div className="match-panel">
-      <div className="match-total"><bdi><strong>{result.profileMatch.matched}</strong><span> / {result.profileMatch.total}</span></bdi><span>מאפייני הדגם תואמים</span></div>
+      <div className="match-total"><bdi><strong>{result.profileMatch.matched}</strong><span> / {result.profileMatch.total}</span></bdi><span>{presentation.updated ? 'מאפייני הדגם המקורי תואמים' : 'מאפייני הדגם תואמים'}</span></div>
       <div className="match-detail">
         <div className="match-segments" aria-hidden="true">{result.criteria.map((item) => <span key={item.id} data-match={item.match === null ? 'unknown' : String(item.match)} />)}</div>
         <p>{result.profileMatch.different} שונים <span>·</span> {result.profileMatch.unknown} לא ידועים</p>
@@ -82,10 +87,15 @@ export function BatteryResult({ result, plate, demo, variant, replacement, setVa
         <select id="replacement" value={replacement} onChange={(event) => { const value = event.target.value; if (value === 'unknown' || value === 'no' || value === 'yes') setReplacement(value) }}>
           <option value="unknown">לא ידוע</option><option value="no">לא, המארז המקורי עדיין מותקן</option><option value="yes">כן, הסוללה הוחלפה</option>
         </select>
+        <label htmlFor="battery-evidence">יש מסמך על החלפה או אישור שמותקן מארז אחר?</label>
+        <select id="battery-evidence" value={batteryEvidence} onChange={event => { if (isBatteryEvidence(event.target.value)) setBatteryEvidence(event.target.value) }}>
+          {Object.entries(BATTERY_EVIDENCE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+        <p>בחרו רק לפי מסמך שבידיכם המתייחס לרכב הזה ולמארז המותקן כיום. קוד CoC אחר לבדו אינו זיהוי של הסוללה הנוכחית. אין להעלות לכאן מסמכים או פרטים אישיים.</p>
         <p>פרטי המסמך וההחלפה הם מידע שהזנתם, ולא אימות מטעם היצרן.</p>
       </div>
     </details>}
-    {replacement === 'yes' && <div className="replacement-note"><Icon name="info" size={19} /><p><strong>הסוללה הוחלפה — ה-VIN נשאר זהה.</strong> ההתאמה למעלה מתייחסת לרכב המקורי. לזיהוי המארז הנוכחי נדרש מספר המכלול המלא והגרסה מחשבונית השירות או מטסלה.</p></div>}
+    {replacement === 'yes' && <div className="replacement-note"><Icon name="info" size={19} /><p><strong>דווחה החלפת סוללה — ה-VIN נשאר זהה.</strong> ההתאמה למעלה מתייחסת לרכב המקורי. פרטי המארז הנוכחי צריכים להופיע במסמכי השירות או באישור מטסלה.</p></div>}
     <div className="next-steps">
       <div className="next-heading"><h3>מה עושים עם התוצאה?</h3><div className="audience-tabs" role="group" aria-label="מידע לקונים או לבעלים"><button aria-pressed={audience === 'buyer'} onClick={() => setAudience('buyer')}>לפני קנייה</button><button aria-pressed={audience === 'owner'} onClick={() => setAudience('owner')}>הרכב שלי</button></div></div>
       {audience === 'buyer' ? <p>{tone === 'attention' ? 'בקשו מהמוכר את תעודת ההתאמה ואת היסטוריית החלפת הסוללה. ' : 'בדקו את היסטוריית הטיפולים ואת האחריות שנותרה. '}ודאו מול טסלה מהו המארז המותקן, ובדקו את הריקולים שמופיעים בהמשך לפני השלמת העסקה.</p>
