@@ -6,15 +6,15 @@ import { BRAND_MARK, SLOGAN } from '../src/lib/branding.ts'
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
 const meta = (name: string) => html.match(new RegExp(`<meta (?:property|name)="${name}" content="([^"]+)"`))?.[1]
 
-test('social crawlers get the slogan and a large preview without executing JavaScript', () => {
+test('social previews retain the slogan while search metadata describes plate and VIN lookup', () => {
   assert.equal(meta('og:title'), `TestMaTesla — ${SLOGAN}`)
   assert.equal(meta('twitter:title'), meta('og:title'))
   assert.equal(meta('twitter:card'), 'summary_large_image')
   assert.equal(meta('og:locale'), 'he_IL')
   assert.equal(meta('og:url'), 'https://testmatesla.com/')
   assert.ok(html.includes('<link rel="canonical" href="https://testmatesla.com/"'))
-  assert.ok(html.includes(`<title>TestMaTesla — ${SLOGAN}</title>`))
-  assert.ok(meta('description')?.startsWith(SLOGAN))
+  assert.ok(html.includes('<title>בדיקת טסלה לפי מספר רישוי או VIN | TestMaTesla</title>'))
+  assert.ok(meta('description')?.startsWith('בדיקת טסלה בישראל לפי מספר רישוי או VIN:'))
   assert.ok(!html.includes('מכירים את הטסלה'))
 })
 
