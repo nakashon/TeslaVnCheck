@@ -95,6 +95,11 @@ a historical mileage series. Registration-change flags are not accident reports.
 
 ## Sharing and privacy
 
+The [Hebrew privacy statement](https://testmatesla.com/#privacy) is linked from
+the lookup form, consent panel and footer. It distinguishes the absence of a
+vehicle/search database from consent preferences, optional analytics and
+third-party request logs. Reading it does not grant analytics consent.
+
 Reports are generated locally. Their links contain a compact snapshot in the
 **URL fragment**, which is not sent in the HTTP request to GitHub Pages.
 
@@ -202,6 +207,26 @@ With `npm run dev`, open `/docs/branding/social-preview.html` and capture
 to regenerate the PNGs in `public/`. Keep the preview image filename and
 `index.html` metadata in sync; version the filename when replacing the image.
 Sharing services may cache an older preview even after deployment.
+
+## Accessibility
+
+The [Hebrew accessibility statement](https://testmatesla.com/#accessibility)
+describes keyboard navigation, browser zoom, reduced motion, system forced
+colors and the text alternative to generated PNG reports. Contrast, labels,
+focus handling and native consent-dialog behavior are covered by browser
+regressions. Escape closes the consent dialog without granting consent.
+
+Run `npm run test:a11y` for Playwright/axe checks against WCAG A/AA rules and
+keyboard/reflow scenarios. On a fresh machine, install the browser with
+`npx playwright install --only-shell chromium` first. The suite uses synthetic registry data,
+blocks analytics and runs its own development server on port 5174. CI runs it
+before deployment.
+
+These checks do not certify full compliance with Israeli Standard 5568 or
+replace screen-reader/user testing and professional review. No private contact
+details are published. The statement links to the existing public GitHub issue
+tracker and explicitly notes that it requires an account; operator-specific
+legal duties and an appropriate accessibility contact channel still need review.
 
 ## Run locally
 

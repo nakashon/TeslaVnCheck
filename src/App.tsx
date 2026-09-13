@@ -17,6 +17,8 @@ import type { RecallState } from './components/RecallPanel.tsx'
 import { ShareReport } from './components/ShareReport.tsx'
 import { HistoryPanel } from './components/HistoryPanel.tsx'
 import { AnalyticsConsent } from './components/AnalyticsConsent.tsx'
+import { PrivacyStatement } from './components/PrivacyStatement.tsx'
+import { AccessibilityStatement } from './components/AccessibilityStatement.tsx'
 import { initializeAnalytics, setAnalyticsPage, trackEvent } from './lib/analytics.ts'
 import './App.css'
 
@@ -166,6 +168,7 @@ export default function App() {
         console.error('Vehicle lookup failed:', err instanceof Error ? err.name : 'UnknownError')
         setError('internal_error')
       }
+      requestAnimationFrame(() => inputRef.current?.focus())
     } finally {
       if (request.current === controller) setBusy(false)
     }
@@ -187,16 +190,17 @@ export default function App() {
     </header>
     <main>
       {invalidShare && <div className="error-message" role="alert">הקישור לדוח אינו תקין. אפשר להתחיל בדיקה חדשה לפי מספר רישוי או VIN.</div>}
-      {shared && <aside className="shared-banner"><Icon name="link" size={23} /><div><strong>מישהו שיתף איתכם את דוח הטסלה שלו.</strong><p>סיכום שנוצר ב־{new Date(shared.createdAt).toLocaleDateString('he-IL')}. זהו דוח משתמש, לא בדיקה חיה או אימות מטעם טסלה.</p></div><button className="primary-button" onClick={() => chooseMode('plate')}>בדקו גם את הרכב שלכם <Icon name="arrow" size={16} /></button></aside>}
+      {shared && <aside className="shared-banner"><Icon name="link" size={23} /><div><h1>דוח טסלה ששיתפו איתכם</h1><p>סיכום שנוצר ב־{new Date(shared.createdAt).toLocaleDateString('he-IL')}. זהו דוח משתמש, לא בדיקה חיה או אימות מטעם טסלה.</p></div><button className="primary-button" onClick={() => chooseMode('plate')}>בדקו גם את הרכב שלכם <Icon name="arrow" size={16} /></button></aside>}
       {!shared && <section className="hero">
         <div className="hero-copy"><span className="eyebrow"><span className="tiny-line" />לנהגים. לקונים. לטסלה שלכם.</span><h1>כל המידע על הטסלה<br /><span>לפי מספר רישוי</span></h1><p>מזינים מספר רכב, מזהים את מאפייני הסוללה ובודקים ריקולים. לפני הקנייה — ולאורך הדרך.</p><a href="#checker" className="hero-link">מתחילים בבדיקה <Icon name="arrow" size={18} /></a><div className="hero-trust"><span><Icon name="shield" size={14} />ללא הרשמה</span><span>ללא שמירת מזהי הרכב</span><span>מקורות גלויים</span></div></div>
         <div className="hero-visual" aria-hidden="true"><div className="visual-top"><span>MODEL Y / BATTERY PROFILE</span><Icon name="scan" size={21} /></div><div className="car-illustration"><svg viewBox="0 0 520 230" fill="none"><ellipse cx="259" cy="193" rx="214" ry="15" fill="#000" opacity=".27" /><path d="M39 158c2-23 19-41 55-49l76-49c35-19 105-20 148-2l73 43 68 15c20 5 33 19 36 42l-6 20h-30c-3-27-17-43-41-43s-42 20-43 43H164c-3-26-20-43-43-43-24 0-40 18-44 43H46l-7-20Z" fill="url(#body)" stroke="#66717d" strokeWidth="1.5" /><path d="m133 102 48-34c30-14 92-15 126-1l55 34H133Z" fill="#1d2632" stroke="#86909d" /><path d="m254 59 1 44m17 7v56m-94-54-3 54m106-47h18" stroke="#7f8792" strokeWidth="1.4" /><path d="m426 116 43 11m-415 9 25-6" stroke="#f4b5bb" strokeWidth="5" strokeLinecap="round" /><circle cx="121" cy="179" r="29" fill="#111720" stroke="#697382" strokeWidth="5" /><circle cx="121" cy="179" r="17" fill="#697382" /><circle cx="418" cy="179" r="29" fill="#111720" stroke="#697382" strokeWidth="5" /><circle cx="418" cy="179" r="17" fill="#697382" /><path d="M178 187h173" stroke="#ed4e62" strokeWidth="7" strokeLinecap="round" /><defs><linearGradient id="body" x1="240" y1="55" x2="240" y2="180" gradientUnits="userSpaceOnUse"><stop stopColor="#c6cbd3" /><stop offset=".45" stopColor="#9aa3b0" /><stop offset="1" stopColor="#454f5e" /></linearGradient></defs></svg></div><div className="visual-bottom"><span className="visual-caption">כעת במיקוד</span><strong>מארז BYD במודל Y</strong><span>ברלין · הנעה אחורית · 2023–2024</span></div><span className="illustration-note">המחשה של קבוצת הדגם, לא תוצאת בדיקה</span></div>
       </section>}
 
-      <section className={`workspace ${shared ? 'shared-workspace' : ''}`} id="checker" aria-label="בדיקת הרכב">
+      <section className={`workspace ${shared ? 'shared-workspace' : ''}`} id="checker" aria-label="בדיקת הרכב" tabIndex={-1}>
         <div className="input-card">
           <div className="card-heading"><span className="mini-icon"><Icon name="search" /></span><span className="section-index">מתחילים כאן</span></div>
           <h2>איזו טסלה בודקים?</h2><p className="card-subtitle">הרכב שלכם, או זה שסימנתם לקנייה.</p>
+          <div className="data-origin"><strong>מאיפה המידע?</strong><p>פרטי הרכב נשלפים ממאגרי משרד התחבורה שפורסמו לציבור — לא מחשבון טסלה או ממידע פרטי של הבעלים. <a href="#privacy">הסבר על מקורות המידע והפרטיות</a></p></div>
           <div className="input-tabs" role="group" aria-label="שיטת בדיקה"><button aria-pressed={mode === 'plate'} onClick={() => chooseMode('plate')}><span className="il-tag" dir="ltr">IL</span>מספר רישוי</button><button aria-pressed={mode === 'vin'} onClick={() => chooseMode('vin')}>מספר שלדה (VIN)</button></div>
           <form onSubmit={submit} noValidate>
             <label htmlFor="identifier">{mode === 'plate' ? 'מספר הרישוי הישראלי' : 'מספר השלדה של הרכב'}</label>
@@ -206,7 +210,7 @@ export default function App() {
             <button type="submit" className="primary-button lookup-button" disabled={busy || !input.trim()}>{busy ? <><span className="spinner" />מזהים את הרכב…</> : <>בדקו את הטסלה <Icon name="arrow" size={18} /></>}</button>
           </form>
           <details className="examples"><summary>רק רוצים לראות איך זה עובד?</summary><div>{examples.map((item) => <button key={item.vin} onClick={() => example(item.vin)}><span className="sample-dot" data-tone={item.tone} />{item.name}</button>)}</div><p>דוגמאות פיקטיביות, ללא פנייה למאגר הרכבים.</p></details>
-          <div className="input-privacy"><Icon name="shield" size={17} /><p>האתר לא שומר מספרי רכב. בדיקת VIN מקומית; חיפוש רישוי נשלח ישירות למשרד התחבורה.</p></div>
+          <div className="input-privacy"><Icon name="shield" size={17} /><p>אין אצלנו מאגר של חיפושי רכב. בדיקת VIN מקומית; חיפוש רישוי נשלח ישירות למשרד התחבורה. <a href="#privacy">מה נשמר ומה לא? הצהרת הפרטיות</a></p></div>
         </div>
         <section className="assessment-area" tabIndex={-1} ref={resultRef} aria-label="תוצאת בדיקת הרכב" aria-live="polite" aria-busy={busy}>
           {result && lookup ? <>
@@ -225,9 +229,11 @@ export default function App() {
       {result && lookup && !lookup.demo && lookup.source !== 'shared' && <ShareReport key={`${lookup.vin}:${variant}:${replacement}:${batteryEvidence}:${recalls.status}:${recalls.status === 'ready' ? recalls.report.checkedAt : ''}`} assessment={result} variant={variant} replacement={replacement} batteryEvidence={batteryEvidence} recalls={recalls} />}
       <BatteryExplainer />
       <section className="sources-section" id="sources"><div><span className="eyebrow">מאחורי כל מסקנה יש מקור</span><h2>אפשר לבדוק גם אותנו.</h2><p>תיעוד טסלה, מאגרי מידע רשמיים ודיווחים מקומיים — עם הבחנה בין עובדה, דיווח והשערה.</p><span className="research-date">בסיס המחקר עודכן: <time dateTime={RESEARCH_DATE}>{new Date(`${RESEARCH_DATE}T12:00:00`).toLocaleDateString('he-IL')}</time></span></div><div className="sources-list">{SOURCES.map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer"><span className="source-number">{String(index + 1).padStart(2, '0')}</span><span><strong>{source.title.he}</strong><small>{source.kind.he}</small></span><Icon name="link" size={16} /></a>)}</div></section>
-      <details className="method-notes"><summary>איך הבדיקה עובדת, ומה משותף בדוח?</summary><p>המדד סופר ארבעה מאפייני רכב ביחס לקבוצה שנחקרה. הוא אינו מודל הסתברותי, אבחון או אימות מקוריות VIN. החלפת סוללה אינה משנה VIN; מידע על הסוללה המותקנת דורש מסמכי שירות. פרטים מתעודת CoC מוזנים על ידי המשתמש.</p><p>דוח משותף כולל קידומת VIN של 11 תווים, שמזהה מאפייני קבוצה ולא את המספר הסידורי, פרטים שהמשתמש ציין וסיכום ריקולים אם הושלם. הוא אינו חתום או מאומת: נמען יכול לראות סיכום אך צריך לבצע בדיקה עדכנית משלו.</p><p>מספרי רישוי נשלחים ישירות ל־data.gov.il, שמקבל גם את כתובת ה-IP. האתר אינו שומר מזהי רכב או משתמש בכלי אנליטיקה. ברירת המחדל היא מאגר רכבים פעילים; מידע חדש או רכב לא פעיל עשויים להיות חסרים.</p></details>
+      <details className="method-notes"><summary>איך הבדיקה עובדת, ומה משותף בדוח?</summary><p>המדד סופר ארבעה מאפייני רכב ביחס לקבוצה שנחקרה. הוא אינו מודל הסתברותי, אבחון או אימות מקוריות VIN. החלפת סוללה אינה משנה VIN; מידע על הסוללה המותקנת דורש מסמכי שירות. פרטים מתעודת CoC מוזנים על ידי המשתמש.</p><p>דוח משותף כולל קידומת VIN של 11 תווים, שמזהה מאפייני קבוצה ולא את המספר הסידורי, פרטים שהמשתמש ציין וסיכום ריקולים אם הושלם. הוא אינו חתום או מאומת: נמען יכול לראות סיכום אך צריך לבצע בדיקה עדכנית משלו.</p><p>מספרי רישוי נשלחים ישירות ל־data.gov.il, שמקבל גם את כתובת ה-IP. אין אצלנו מאגר חיפושי רכב; מדידת שימוש ב־Google Analytics מופעלת רק בהסכמה. <a href="#privacy">לפרטים בהצהרת הפרטיות.</a> ברירת המחדל היא מאגר רכבים פעילים; מידע חדש או רכב לא פעיל עשויים להיות חסרים.</p></details>
+      <PrivacyStatement />
+      <AccessibilityStatement />
     </main>
     <AnalyticsConsent />
-    <footer><Brand footer /><p>{SLOGAN}</p><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
+    <footer><Brand footer /><p>{SLOGAN}</p><div className="footer-links"><a className="footer-privacy" href="#privacy">הצהרת פרטיות</a><a className="footer-privacy" href="#accessibility">נגישות האתר</a></div><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
   </div>
 }

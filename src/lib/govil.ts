@@ -2,6 +2,7 @@ import { normalizePlate, normalizeVin, InputError } from './checker.ts'
 
 // Same CKAN resource and plate-to-misgeret mapping used by CarAgent/src/enrich/govil.ts.
 export const ACTIVE_RESOURCE = '053cea08-09bc-40ec-8f7a-156f0677aff3'
+export const ACTIVE_SOURCE_URL = `https://data.gov.il/dataset/7a338622-63bb-4cfd-b3f7-0d2e8cf71033/resource/${ACTIVE_RESOURCE}`
 export const GOV_API = 'https://data.gov.il/api/3/action/datastore_search'
 const fields = ['mispar_rechev', 'misgeret', 'tozeret_nm', 'degem_nm', 'degem_cd', 'tozeret_cd', 'ramat_gimur', 'shnat_yitzur', 'horaat_rishum', 'kinuy_mishari', 'baalut', 'moed_aliya_lakvish', 'mivchan_acharon_dt']
 
