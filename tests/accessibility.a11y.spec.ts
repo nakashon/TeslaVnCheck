@@ -98,6 +98,7 @@ test('consent dialog traps focus, supports Escape and opens privacy without cons
   await page.evaluate(`import('/src/lib/analytics.ts').then(module => module.initializeAnalytics('G-TEST000001'))`)
   await expect(page.locator('#analytics-consent')).not.toBeVisible()
   await expect(page.locator('#privacy')).toBeInViewport()
+  await expect(page.locator('#privacy')).toBeFocused()
   await expect(page.locator('#privacy a[href*="data.gov.il"]')).toHaveCount(3)
 })
 

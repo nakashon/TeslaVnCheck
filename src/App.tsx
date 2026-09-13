@@ -63,6 +63,17 @@ export default function App() {
 
   useEffect(() => () => request.current?.abort(), [])
   useEffect(() => {
+    const hash = window.location.hash
+    if (hash !== '#privacy' && hash !== '#accessibility') return
+    const frame = requestAnimationFrame(() => {
+      if (window.location.hash !== hash) return
+      const target = document.getElementById(hash.slice(1))
+      target?.focus({ preventScroll: true })
+      target?.scrollIntoView({ behavior: 'instant', block: 'start' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [])
+  useEffect(() => {
     const live = import.meta.env.PROD && ['testmatesla.com', 'www.testmatesla.com'].includes(window.location.hostname)
     initializeAnalytics(live ? import.meta.env.VITE_GA_MEASUREMENT_ID ?? '' : '', Boolean(shared))
     setAnalyticsPage(Boolean(shared))
