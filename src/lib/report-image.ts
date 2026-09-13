@@ -2,8 +2,12 @@ import QRCode from 'qrcode'
 import { assess } from './checker.ts'
 import { batteryPresentation } from './battery-presentation.ts'
 import type { SharedReport } from './share.ts'
+import { BRAND_MARK, SLOGAN } from './branding.ts'
 
 export async function renderReportImage(report: SharedReport, link: string): Promise<Blob> {
+  const logo = new Image()
+  logo.src = `${import.meta.env.BASE_URL}${BRAND_MARK}`
+  await logo.decode()
   const result = assess(report.prefix + '000000', report.variant, report.replacement, report.registration)
   const presentation = batteryPresentation(result, report.replacement, report.batteryEvidence)
   const tone = presentation.tone
@@ -30,11 +34,11 @@ export async function renderReportImage(report: SharedReport, link: string): Pro
   context.fillRect(0, 0, 1080, 1380)
   context.direction = 'ltr'
   context.textAlign = 'left'
-  text('TestMaTesla', 64, 95, 53, '#191b22', true)
-  context.fillStyle = '#df3048'
-  context.fillRect(64, 118, 72, 6)
+  context.drawImage(logo, 64, 46, 68, 68)
+  text('TestMaTesla', 149, 95, 53, '#191b22', true)
   context.direction = 'rtl'
   context.textAlign = 'right'
+  text(SLOGAN, 1016, 139, 25, '#666b77')
   text('דוח זיהוי רכב', 1016, 198, 32, '#666b77')
   text(result.decoded.model ?? 'Tesla', 1016, 267, 58, '#191b22', true)
   const factory = ({ Berlin: 'ברלין', Shanghai: 'שנגחאי', Fremont: 'פרימונט', Austin: 'אוסטין' }[result.decoded.factory ?? '']) ?? 'מפעל לא ידוע'

@@ -8,6 +8,8 @@ import type { Vehicle } from './lib/govil.ts'
 import { lookupRecalls } from './lib/recalls.ts'
 import { readInitialReport } from './lib/share.ts'
 import { Icon } from './components/Icon.tsx'
+import { Brand } from './components/Brand.tsx'
+import { SLOGAN } from './lib/branding.ts'
 import { BatteryResult } from './components/BatteryResult.tsx'
 import { BatteryExplainer } from './components/BatteryExplainer.tsx'
 import { RecallPanel } from './components/RecallPanel.tsx'
@@ -169,15 +171,15 @@ export default function App() {
   return <div className="site-shell">
     <a className="skip-link" href="#checker">מעבר לבדיקת הרכב</a>
     <header className="site-header">
-      <a href="#" className="brand" aria-label="TestMaTesla — עמוד הבית"><span className="brand-mark"><Icon name="scan" size={23} /></span><span dir="ltr">Test<span>Ma</span>Tesla</span></a>
+      <Brand />
       <nav aria-label="ניווט ראשי"><a href="#checker">בדיקת רכב</a><a href="#battery-story">הסיפור של הסוללה</a><a href="#recalls">ריקולים</a><a href="#history">היסטוריה</a><a href="#sources">מקורות</a></nav>
-      <span className="header-caption">מכירים את הטסלה.</span>
+      <span className="header-caption">{SLOGAN}</span>
     </header>
     <main>
       {invalidShare && <div className="error-message" role="alert">הקישור לדוח אינו תקין. אפשר להתחיל בדיקה חדשה לפי מספר רישוי או VIN.</div>}
       {shared && <aside className="shared-banner"><Icon name="link" size={23} /><div><strong>מישהו שיתף איתכם את דוח הטסלה שלו.</strong><p>סיכום שנוצר ב־{new Date(shared.createdAt).toLocaleDateString('he-IL')}. זהו דוח משתמש, לא בדיקה חיה או אימות מטעם טסלה.</p></div><button className="primary-button" onClick={() => chooseMode('plate')}>בדקו גם את הרכב שלכם <Icon name="arrow" size={16} /></button></aside>}
       {!shared && <section className="hero">
-        <div className="hero-copy"><span className="eyebrow"><span className="tiny-line" />לנהגים. לקונים. לטסלה שלכם.</span><h1>הטסלה שלך.<br /><span>התמונה המלאה.</span></h1><p>מזינים מספר רכב, מזהים את מאפייני הסוללה ובודקים ריקולים. לפני הקנייה — ולאורך הדרך.</p><a href="#checker" className="hero-link">מתחילים בבדיקה <Icon name="arrow" size={18} /></a><div className="hero-trust"><span><Icon name="shield" size={14} />ללא הרשמה</span><span>ללא שמירת מזהי הרכב</span><span>מקורות גלויים</span></div></div>
+        <div className="hero-copy"><span className="eyebrow"><span className="tiny-line" />לנהגים. לקונים. לטסלה שלכם.</span><h1>כל המידע על הטסלה<br /><span>לפי מספר רישוי</span></h1><p>מזינים מספר רכב, מזהים את מאפייני הסוללה ובודקים ריקולים. לפני הקנייה — ולאורך הדרך.</p><a href="#checker" className="hero-link">מתחילים בבדיקה <Icon name="arrow" size={18} /></a><div className="hero-trust"><span><Icon name="shield" size={14} />ללא הרשמה</span><span>ללא שמירת מזהי הרכב</span><span>מקורות גלויים</span></div></div>
         <div className="hero-visual" aria-hidden="true"><div className="visual-top"><span>MODEL Y / BATTERY PROFILE</span><Icon name="scan" size={21} /></div><div className="car-illustration"><svg viewBox="0 0 520 230" fill="none"><ellipse cx="259" cy="193" rx="214" ry="15" fill="#000" opacity=".27" /><path d="M39 158c2-23 19-41 55-49l76-49c35-19 105-20 148-2l73 43 68 15c20 5 33 19 36 42l-6 20h-30c-3-27-17-43-41-43s-42 20-43 43H164c-3-26-20-43-43-43-24 0-40 18-44 43H46l-7-20Z" fill="url(#body)" stroke="#66717d" strokeWidth="1.5" /><path d="m133 102 48-34c30-14 92-15 126-1l55 34H133Z" fill="#1d2632" stroke="#86909d" /><path d="m254 59 1 44m17 7v56m-94-54-3 54m106-47h18" stroke="#7f8792" strokeWidth="1.4" /><path d="m426 116 43 11m-415 9 25-6" stroke="#f4b5bb" strokeWidth="5" strokeLinecap="round" /><circle cx="121" cy="179" r="29" fill="#111720" stroke="#697382" strokeWidth="5" /><circle cx="121" cy="179" r="17" fill="#697382" /><circle cx="418" cy="179" r="29" fill="#111720" stroke="#697382" strokeWidth="5" /><circle cx="418" cy="179" r="17" fill="#697382" /><path d="M178 187h173" stroke="#ed4e62" strokeWidth="7" strokeLinecap="round" /><defs><linearGradient id="body" x1="240" y1="55" x2="240" y2="180" gradientUnits="userSpaceOnUse"><stop stopColor="#c6cbd3" /><stop offset=".45" stopColor="#9aa3b0" /><stop offset="1" stopColor="#454f5e" /></linearGradient></defs></svg></div><div className="visual-bottom"><span className="visual-caption">כעת במיקוד</span><strong>מארז BYD במודל Y</strong><span>ברלין · הנעה אחורית · 2023–2024</span></div><span className="illustration-note">המחשה של קבוצת הדגם, לא תוצאת בדיקה</span></div>
       </section>}
 
@@ -215,6 +217,6 @@ export default function App() {
       <section className="sources-section" id="sources"><div><span className="eyebrow">מאחורי כל מסקנה יש מקור</span><h2>אפשר לבדוק גם אותנו.</h2><p>תיעוד טסלה, מאגרי מידע רשמיים ודיווחים מקומיים — עם הבחנה בין עובדה, דיווח והשערה.</p><span className="research-date">בסיס המחקר עודכן: <time dateTime={RESEARCH_DATE}>{new Date(`${RESEARCH_DATE}T12:00:00`).toLocaleDateString('he-IL')}</time></span></div><div className="sources-list">{SOURCES.map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer"><span className="source-number">{String(index + 1).padStart(2, '0')}</span><span><strong>{source.title.he}</strong><small>{source.kind.he}</small></span><Icon name="link" size={16} /></a>)}</div></section>
       <details className="method-notes"><summary>איך הבדיקה עובדת, ומה משותף בדוח?</summary><p>המדד סופר ארבעה מאפייני רכב ביחס לקבוצה שנחקרה. הוא אינו מודל הסתברותי, אבחון או אימות מקוריות VIN. החלפת סוללה אינה משנה VIN; מידע על הסוללה המותקנת דורש מסמכי שירות. פרטים מתעודת CoC מוזנים על ידי המשתמש.</p><p>דוח משותף כולל קידומת VIN של 11 תווים, שמזהה מאפייני קבוצה ולא את המספר הסידורי, פרטים שהמשתמש ציין וסיכום ריקולים אם הושלם. הוא אינו חתום או מאומת: נמען יכול לראות סיכום אך צריך לבצע בדיקה עדכנית משלו.</p><p>מספרי רישוי נשלחים ישירות ל־data.gov.il, שמקבל גם את כתובת ה-IP. האתר אינו שומר מזהי רכב או משתמש בכלי אנליטיקה. ברירת המחדל היא מאגר רכבים פעילים; מידע חדש או רכב לא פעיל עשויים להיות חסרים.</p></details>
     </main>
-    <footer><a className="brand footer-brand" href="#"><span dir="ltr">Test<span>Ma</span>Tesla</span></a><p>מכירים את הטסלה. לפני הקנייה ולאורך הדרך.</p><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
+    <footer><Brand footer /><p>{SLOGAN}</p><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
   </div>
 }

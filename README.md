@@ -1,19 +1,19 @@
 # TestMaTesla
 
-**Know your Tesla. Before you buy it. Throughout ownership.**
+**כל המידע על הטסלה לפי מספר רישוי**
 
 A Hebrew-first vehicle-information site for Tesla owners and buyers in Israel.
 Start with a license plate or VIN to understand the battery configuration, check
 Israeli recalls, explore available ownership and mileage records, and share a
 vehicle report.
 
-**[Open TestMaTesla](https://nakashon.github.io/testmatesla/)** |
+**[Open TestMaTesla](https://testmatesla.com/)** |
 [Report an issue](https://github.com/nakashon/testmatesla/issues) |
 [Run locally](#run-locally)
 
 [![Deploy TestMaTesla](https://github.com/nakashon/testmatesla/actions/workflows/deploy.yml/badge.svg)](https://github.com/nakashon/testmatesla/actions/workflows/deploy.yml)
 
-[![TestMaTesla's Hebrew interface, with battery-profile guidance and Israeli plate lookup](docs/assets/testmatesla-preview.png)](https://nakashon.github.io/testmatesla/)
+[![TestMaTesla's Hebrew interface, with battery-profile guidance and Israeli plate lookup](docs/assets/testmatesla-preview.png)](https://testmatesla.com/)
 
 ## What you can do
 
@@ -125,6 +125,25 @@ Requests omit credentials and referrers and disable browser caching. GitHub Page
 may retain ordinary hosting access logs. No external fonts or QR-generation
 services are used.
 
+## Branding and link previews
+
+The original plate-and-magnifier mark is shared by the header, footer, favicon
+and generated vehicle reports. WhatsApp, Facebook, LinkedIn and other Open Graph
+consumers receive a static **1200 × 630 PNG**; X/Twitter receives large-image card
+metadata. All preview URLs are absolute HTTPS URLs in the initial HTML, so
+crawlers do not need to run React.
+
+The preview is deliberately generic: report fragments never reach the server,
+so a link preview cannot display the private report's vehicle-specific result.
+The downloadable report image retains that result.
+
+The editable preview source is [docs/branding/social-preview.html](docs/branding/social-preview.html).
+With `npm run dev`, open `/docs/branding/social-preview.html` and capture
+`#social-preview`, `#touch-icon` and `#favicon` at their native CSS dimensions
+to regenerate the PNGs in `public/`. Keep the preview image filename and
+`index.html` metadata in sync; version the filename when replacing the image.
+Sharing services may cache an older preview even after deployment.
+
 ## Run locally
 
 Requires **Node.js 24.13+** and npm.
@@ -226,9 +245,9 @@ Pushes to `main` run the [deployment workflow](.github/workflows/deploy.yml),
 which installs dependencies, runs the tests, builds the site and publishes it.
 Manual deployment is also available through GitHub Actions.
 
-The current live address is **https://nakashon.github.io/testmatesla/**.
-The intended custom domain is **testmatesla.com**; it is not configured in Pages
-at the time of this README update. Relative asset paths support either address.
+The current live address is **https://testmatesla.com/**, configured as the GitHub
+Pages custom domain. Relative application assets also support repository paths;
+canonical and social-preview URLs point to the public custom domain.
 
 Configure custom domains in [the repository's Pages settings](https://github.com/nakashon/testmatesla/settings/pages)
 and at the DNS provider. This Actions-based deployment does not require a `CNAME`
