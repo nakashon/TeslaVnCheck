@@ -105,6 +105,12 @@ Reports are generated locally. Their links contain a compact snapshot in the
 Shared reports are **unsigned user-generated summaries**, not live registry
 responses or Tesla-issued certificates. The recipient can start their own lookup.
 
+The separate CoC request letter for Tesla is prefilled with the full VIN and,
+when available, the registration number from the current lookup. It is only
+copied on request, never sent automatically, and is intended for private contact
+with Tesla or the importer rather than public sharing. Demo letters retain a
+VIN placeholder; shared reports do not expose this letter.
+
 The application has no backend, analytics or identifier storage. Plate lookups go
 directly to `data.gov.il`, which receives the requested plate and visitor IP.
 Requests omit credentials and referrers and disable browser caching. GitHub Pages

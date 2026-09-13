@@ -1,14 +1,9 @@
 import { useState } from 'react'
+import { cocRequest } from '../lib/coc.ts'
 import { Icon } from './Icon.tsx'
 
-const requestText = `שלום,
-ברצוני לזהות את תצורת הסוללה של הרכב שמספר השלדה שלו הוא: [יש להשלים VIN].
-אבקש העתק של תעודת התאמה של היצרן (Certificate of Conformity / CoC), אם קיימת לרכב, כולל סעיף 0.2: Type / Variant / Version ומספר אישור התקינה.
-אם לא ניתן לספק CoC, אבקש אישור בכתב של תצורת הסוללה המקורית ושל זהות מארז המתח הגבוה המותקן כיום, כולל יצרן/סוג המארז, מספר חלק מלא וגרסה.
-אם המארז הוחלף, אבקש גם את פרטי ההחלפה ואת מספר החלק של המארז שהותקן.
-תודה.`
-
-export function CocHelp() {
+export function CocHelp({ vin, plate }: { vin: string | null; plate: string | null }) {
+  const requestText = cocRequest(vin, plate)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'manual'>('idle')
   async function copyRequest() {
     try {
@@ -27,10 +22,11 @@ export function CocHelp() {
       <li><strong>בודקים לפני קנייה?</strong> בקשו מהמוכר את המסמך, או שיפנה בעצמו לטסלה. אין צורך למסור לנו פרטי גישה לחשבון.</li>
     </ol>
     <p><strong>כשהמסמך בידיכם:</strong> בסעיף <bdi>0.2 — Type / Variant / Version</bdi> חפשו את שדה <bdi>Variant</bdi>. בחרו <bdi>Y7CR</bdi> רק אם זה הקוד שמופיע במפורש. קוד דגם ישראלי או הוראת רישום אינם תחליף לקוד הזה.</p>
-    <label htmlFor="coc-request">נוסח מוכן לפנייה לטסלה — השלימו VIN לפני השליחה</label>
+    <label htmlFor="coc-request">נוסח מוכן לפנייה לטסלה — {vin ? 'פרטי הרכב מולאו מהבדיקה' : 'השלימו VIN לפני השליחה'}</label>
     <textarea id="coc-request" rows={8} readOnly value={requestText} onFocus={event => event.currentTarget.select()} />
+    {vin && <p>הנוסח כולל VIN מלא{plate ? ' ומספר רישוי' : ''}. בדקו את הפרטים ושלחו לטסלה או ליבואן, לא בקבוצה ציבורית.</p>}
     <button className="secondary-button" type="button" onClick={copyRequest}><Icon name="link" size={15} />העתקת נוסח הפנייה</button>
-    {copyState !== 'idle' && <p role={copyState === 'manual' ? 'alert' : 'status'}>{copyState === 'copied' ? 'הנוסח הועתק. השלימו את ה־VIN ושלחו לטסלה או ליבואן; האתר לא שולח את הבקשה.' : 'ההעתקה נחסמה בדפדפן. סמנו והעתיקו ידנית מהשדה למעלה.'}</p>}
+    {copyState !== 'idle' && <p role={copyState === 'manual' ? 'alert' : 'status'}>{copyState === 'copied' ? vin ? 'הנוסח הועתק עם פרטי הרכב. אפשר לשלוח לטסלה או ליבואן; האתר לא שולח את הבקשה.' : 'הנוסח הועתק. השלימו את ה־VIN ושלחו לטסלה או ליבואן; האתר לא שולח את הבקשה.' : 'ההעתקה נחסמה בדפדפן. סמנו והעתיקו ידנית מהשדה למעלה.'}</p>}
     <p>ה־CoC מתאר את התצורה המקורית, לא בהכרח סוללה שהוחלפה. אין לנו דרך מאומתת לשלוף את המסמך אוטומטית לפי מספר רישוי או VIN.</p>
     <a className="coc-source" href="https://www.tesla.com/en_GB/support/second-hand-purchase" target="_blank" rel="noreferrer">הנחיית טסלה לבקשת CoC — אתר בריטניה <Icon name="link" size={13} /></a>
     <p>עמוד <bdi>EU Declarations of Conformity</bdi> של טסלה מפרסם הצהרות לרכיבים; הוא אינו תעודת ה־CoC האישית של הרכב.</p>

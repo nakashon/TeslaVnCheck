@@ -34,8 +34,10 @@ const copy: Record<Status, { label: string; title: string; detail: string }> = {
 
 const labels = { model: 'מודל Y', factory: 'ייצור ברלין', year: 'שנות ייצור 2023–2024', drive: 'הנעה אחורית' }
 
-export function BatteryResult({ result, variant, replacement, setVariant, setReplacement, readOnly = false }: {
+export function BatteryResult({ result, plate, demo, variant, replacement, setVariant, setReplacement, readOnly = false }: {
   result: Assessment
+  plate: string | null
+  demo: boolean
   variant: Variant
   replacement: Replacement
   setVariant: (value: Variant) => void
@@ -71,7 +73,7 @@ export function BatteryResult({ result, variant, replacement, setVariant, setRep
     {!readOnly && <details className="refine-details">
       <summary><Icon name="plus" size={17} />זיהוי הסוללה: איך משיגים מסמך ומה מזינים?</summary>
       <div className="refine-fields">
-        <CocHelp />
+        <CocHelp key={`${result.decoded.vin}-${plate}`} vin={demo ? null : result.decoded.vin} plate={demo ? null : plate} />
         <label htmlFor="variant">קוד תת-הדגם בתעודת ההתאמה (CoC), סעיף 0.2</label>
         <select id="variant" value={variant} onChange={(event) => { const value = event.target.value; if (value === 'unknown' || value === 'Y7CR' || value === 'other') setVariant(value) }}>
           <option value="unknown">אין לי את המסמך / לא ידוע</option><option value="Y7CR">Y7CR</option><option value="other">מופיע קוד אחר</option>
