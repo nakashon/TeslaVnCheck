@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Search visibility does not require allowing OpenAI model-training crawls.
+User-agent: GPTBot
+Disallow: /
+
+Sitemap: https://testmatesla.com/sitemap.xml

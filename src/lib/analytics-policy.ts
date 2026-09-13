@@ -13,6 +13,9 @@ const campaignFields = {
 }
 const referralHosts = new Set([
   'google.com', 'www.google.com', 'google.co.il', 'www.google.co.il',
+  'bing.com', 'www.bing.com', 'duckduckgo.com', 'www.duckduckgo.com',
+  'chatgpt.com', 'chat.openai.com', 'perplexity.ai', 'www.perplexity.ai',
+  'copilot.microsoft.com', 'claude.ai', 'gemini.google.com',
   'facebook.com', 'www.facebook.com', 'm.facebook.com', 'l.facebook.com', 'lm.facebook.com',
   'instagram.com', 'www.instagram.com', 'l.instagram.com', 't.me',
   'youtube.com', 'www.youtube.com', 'youtu.be', 'linkedin.com', 'www.linkedin.com',

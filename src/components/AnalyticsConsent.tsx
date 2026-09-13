@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { analyticsState, chooseAnalyticsConsent, subscribeAnalytics } from '../lib/analytics.ts'
+import { PUBLIC_CONTENT_HASHES } from '../lib/seo.ts'
 
 export function AnalyticsConsent() {
   const [state, setState] = useState(analyticsState)
   const [open, setOpen] = useState(false)
-  const [readingPrivacy, setReadingPrivacy] = useState(() => ['#privacy', '#accessibility'].includes(window.location.hash))
+  const [readingPrivacy, setReadingPrivacy] = useState(() => typeof window !== 'undefined' && PUBLIC_CONTENT_HASHES.includes(window.location.hash))
   const dialogRef = useRef<HTMLDialogElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const visible = state.enabled && (open || (state.consent === 'unset' && !readingPrivacy))

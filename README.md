@@ -93,6 +93,60 @@ The mileage source does not include the reading's date. The last-inspection date
 from the active registry is therefore labeled separately, not used to manufacture
 a historical mileage series. Registration-change flags are not accident reports.
 
+## Search visibility: traditional and AI search
+
+The production build prerenders the public homepage into HTML, including the
+battery explanation, sources, privacy statement and Hebrew FAQ. Readers and
+crawlers do not need JavaScript to read that content. Interactive vehicle lookup
+still requires JavaScript. The browser replaces the static React markup rather
+than hydrating it, because shared-report fragments and analytics consent are
+browser-only state. The build makes no vehicle lookups and runs no analytics.
+
+`src/lib/seo.ts` supplies both the visible FAQ and its JSON-LD, alongside the
+site, independent publisher and free web-application entities. JSON-LD is
+authorized by a build-generated CSP hash; script permissions are not weakened
+with `unsafe-inline`. The markup does not claim ratings, official Tesla
+affiliation, a confirmed defective VIN range or a vehicle-search URL endpoint.
+FAQ markup does **not** guarantee a Google FAQ rich result.
+
+`robots.txt` allows ordinary search crawlers and OpenAI's **OAI-SearchBot**.
+OpenAI's separate **GPTBot** training crawler is disallowed; allowing training
+is not required for ChatGPT search visibility. These are voluntary crawler
+directives, not access controls. The sitemap lists only the canonical homepage,
+not campaign parameters, report fragments or vehicle-specific pages. No lookup
+results or entered identifiers are emitted into static HTML or structured data.
+Public question anchors are directly linkable and open without a consent modal.
+
+No `llms.txt` or AI-specific schema is required by Google; the focus is readable,
+citable content and normal crawlability, not promises of AI citations or rankings.
+See [Google's AI search guidance](https://developers.google.com/search/docs/appearance/ai-features)
+and [OpenAI's crawler documentation](https://developers.openai.com/api/docs/bots).
+
+After deployment, the site owner should:
+
+1. Verify `testmatesla.com` as a domain property in Google Search Console using
+   the provided DNS TXT record in Cloudflare. Submit
+   `https://testmatesla.com/sitemap.xml` and request indexing of the homepage.
+2. Add the site to Bing Webmaster Tools (or import the verified Search Console
+   property) and submit the same sitemap.
+3. Check Cloudflare's bot/WAF settings and any managed `robots.txt` rules so
+   verified Googlebot, Bingbot and OAI-SearchBot can fetch public pages. Do not
+   disable the WAF globally or assume the repository overrides CDN-level blocks.
+
+Search Console and Bing report indexing and search performance; consent-based
+GA4 alone cannot show all search impressions or AI citations. Inclusion and
+ranking remain the search providers' decisions.
+
+For consenting visitors, known search/AI referral origins (including Bing,
+ChatGPT, Perplexity, Copilot, Claude and Gemini) can appear in GA4 acquisition
+data when the referring service supplies them. Search terms, conversation paths,
+query strings and fragments are stripped. Missing referrers are not reconstructed.
+
+Run `npm run build && npm run test:seo` to exercise the production HTML,
+no-JavaScript reading, metadata, CSP hash and interactive/shared-report behavior.
+The existing Playwright accessibility suite continues to run against development
+mode; the SEO suite uses a separate production preview on port 5175.
+
 ## Sharing and privacy
 
 The [Hebrew privacy statement](https://testmatesla.com/#privacy) is linked from

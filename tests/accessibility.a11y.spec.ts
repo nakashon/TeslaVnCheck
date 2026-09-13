@@ -40,6 +40,11 @@ test('home, skip link, privacy navigation and invalid input support keyboard use
   await page.locator('.input-privacy a').click()
   await expect(page.locator('#privacy')).toBeFocused()
   await expect(page.locator('#privacy')).toContainText('Google Analytics')
+  await page.locator('footer a[href="#faq"]').click()
+  await page.locator('#byd-identification summary').focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#byd-identification p')).toBeVisible()
+  await audit(page)
 })
 
 test('battery colors, CoC controls and generated report have accessible equivalents', async ({ page }) => {
@@ -102,6 +107,12 @@ test('consent dialog traps focus, supports Escape and opens privacy without cons
   await expect(page.locator('#privacy')).toBeInViewport()
   await expect(page.locator('#privacy')).toBeFocused()
   await expect(page.locator('#privacy a[href*="data.gov.il"]')).toHaveCount(3)
+  await page.goto('/#battery-profile')
+  await page.evaluate(`import('/src/lib/analytics.ts').then(module => module.initializeAnalytics('G-TEST000001'))`)
+  await expect(page.locator('#analytics-consent')).not.toBeVisible()
+  await expect(page.locator('#battery-profile')).toBeFocused()
+  await expect(page.locator('#battery-profile p')).toBeVisible()
+  expect(await page.evaluate('Boolean(window.dataLayer?.length)')).toBe(false)
 })
 
 test('320px reflow, expanded text spacing and reduced motion remain usable', async ({ page }) => {

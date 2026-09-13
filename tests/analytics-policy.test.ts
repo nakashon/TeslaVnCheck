@@ -36,6 +36,16 @@ test('event payloads allow only relevant fixed method enums, never extra object 
   }
 })
 
+test('search and AI referral attribution keeps only public origins, not searches or conversations', () => {
+  for (const host of ['www.bing.com', 'duckduckgo.com', 'chatgpt.com', 'chat.openai.com',
+    'www.perplexity.ai', 'copilot.microsoft.com', 'claude.ai', 'gemini.google.com']) {
+    const context = analyticsContext('', `https://${host}/c/private-conversation?q=private-search#private-answer`)
+    assert.equal(context.page_referrer, `https://${host}/`)
+    assert.ok(!JSON.stringify(context).includes('private'))
+  }
+  assert.equal(analyticsContext('', 'https://chatgpt.com.evil.example/private').page_referrer, '')
+})
+
 test('generated report attribution replaces incoming advertising or private query parameters', () => {
   const url = new URL('https://testmatesla.com/?plate=12345678&utm_source=facebook&fbclid=private#report=synthetic')
   tagReportLink(url)

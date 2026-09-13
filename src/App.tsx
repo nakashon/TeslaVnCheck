@@ -19,6 +19,8 @@ import { HistoryPanel } from './components/HistoryPanel.tsx'
 import { AnalyticsConsent } from './components/AnalyticsConsent.tsx'
 import { PrivacyStatement } from './components/PrivacyStatement.tsx'
 import { AccessibilityStatement } from './components/AccessibilityStatement.tsx'
+import { SearchFaq } from './components/SearchFaq.tsx'
+import { PUBLIC_CONTENT_HASHES } from './lib/seo.ts'
 import { initializeAnalytics, setAnalyticsPage, trackEvent } from './lib/analytics.ts'
 import './App.css'
 
@@ -41,7 +43,7 @@ const examples = [
 ]
 
 export default function App() {
-  const [initial] = useState(() => readInitialReport(window.location.hash))
+  const [initial] = useState(() => readInitialReport(typeof window === 'undefined' ? '' : window.location.hash))
   const [shared, setShared] = useState(initial.report)
   const [invalidShare, setInvalidShare] = useState(initial.invalid)
   const [mode, setMode] = useState<'vin' | 'plate'>('plate')
@@ -63,15 +65,25 @@ export default function App() {
 
   useEffect(() => () => request.current?.abort(), [])
   useEffect(() => {
-    const hash = window.location.hash
-    if (hash !== '#privacy' && hash !== '#accessibility') return
-    const frame = requestAnimationFrame(() => {
-      if (window.location.hash !== hash) return
-      const target = document.getElementById(hash.slice(1))
-      target?.focus({ preventScroll: true })
-      target?.scrollIntoView({ behavior: 'instant', block: 'start' })
-    })
-    return () => cancelAnimationFrame(frame)
+    let frame: number | undefined
+    function openPublicContent() {
+      const hash = window.location.hash
+      if (!PUBLIC_CONTENT_HASHES.includes(hash)) return
+      if (frame !== undefined) cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        if (window.location.hash !== hash) return
+        const target = document.getElementById(hash.slice(1))
+        if (target instanceof HTMLDetailsElement) target.open = true
+        target?.focus({ preventScroll: true })
+        target?.scrollIntoView({ behavior: 'instant', block: 'start' })
+      })
+    }
+    openPublicContent()
+    window.addEventListener('hashchange', openPublicContent)
+    return () => {
+      window.removeEventListener('hashchange', openPublicContent)
+      if (frame !== undefined) cancelAnimationFrame(frame)
+    }
   }, [])
   useEffect(() => {
     const live = import.meta.env.PROD && ['testmatesla.com', 'www.testmatesla.com'].includes(window.location.hostname)
@@ -200,6 +212,7 @@ export default function App() {
       <span className="header-caption">{SLOGAN}</span>
     </header>
     <main>
+      <noscript><p className="data-origin">המידע, השאלות והמקורות זמינים גם ללא JavaScript. לבדיקת רכב ולהפקת דוח יש להפעיל JavaScript בדפדפן.</p></noscript>
       {invalidShare && <div className="error-message" role="alert">הקישור לדוח אינו תקין. אפשר להתחיל בדיקה חדשה לפי מספר רישוי או VIN.</div>}
       {shared && <aside className="shared-banner"><Icon name="link" size={23} /><div><h1>דוח טסלה ששיתפו איתכם</h1><p>סיכום שנוצר ב־{new Date(shared.createdAt).toLocaleDateString('he-IL')}. זהו דוח משתמש, לא בדיקה חיה או אימות מטעם טסלה.</p></div><button className="primary-button" onClick={() => chooseMode('plate')}>בדקו גם את הרכב שלכם <Icon name="arrow" size={16} /></button></aside>}
       {!shared && <section className="hero">
@@ -239,12 +252,13 @@ export default function App() {
       <HistoryPanel plate={lookup?.plate ?? null} vehicle={lookup?.vehicle ?? null} demo={Boolean(lookup?.demo)} onPlate={() => chooseMode('plate')} />
       {result && lookup && !lookup.demo && lookup.source !== 'shared' && <ShareReport key={`${lookup.vin}:${variant}:${replacement}:${batteryEvidence}:${recalls.status}:${recalls.status === 'ready' ? recalls.report.checkedAt : ''}`} assessment={result} variant={variant} replacement={replacement} batteryEvidence={batteryEvidence} recalls={recalls} />}
       <BatteryExplainer />
+      <SearchFaq />
       <section className="sources-section" id="sources"><div><span className="eyebrow">מאחורי כל מסקנה יש מקור</span><h2>אפשר לבדוק גם אותנו.</h2><p>תיעוד טסלה, מאגרי מידע רשמיים ודיווחים מקומיים — עם הבחנה בין עובדה, דיווח והשערה.</p><span className="research-date">בסיס המחקר עודכן: <time dateTime={RESEARCH_DATE}>{new Date(`${RESEARCH_DATE}T12:00:00`).toLocaleDateString('he-IL')}</time></span></div><div className="sources-list">{SOURCES.map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer"><span className="source-number">{String(index + 1).padStart(2, '0')}</span><span><strong>{source.title.he}</strong><small>{source.kind.he}</small></span><Icon name="link" size={16} /></a>)}</div></section>
       <details className="method-notes"><summary>איך הבדיקה עובדת, ומה משותף בדוח?</summary><p>המדד סופר ארבעה מאפייני רכב ביחס לקבוצה שנחקרה. הוא אינו מודל הסתברותי, אבחון או אימות מקוריות VIN. החלפת סוללה אינה משנה VIN; מידע על הסוללה המותקנת דורש מסמכי שירות. פרטים מתעודת CoC מוזנים על ידי המשתמש.</p><p>דוח משותף כולל קידומת VIN של 11 תווים, שמזהה מאפייני קבוצה ולא את המספר הסידורי, פרטים שהמשתמש ציין וסיכום ריקולים אם הושלם. הוא אינו חתום או מאומת: נמען יכול לראות סיכום אך צריך לבצע בדיקה עדכנית משלו.</p><p>מספרי רישוי נשלחים ישירות ל־data.gov.il, שמקבל גם את כתובת ה-IP. אין אצלנו מאגר חיפושי רכב; מדידת שימוש ב־Google Analytics מופעלת רק בהסכמה. <a href="#privacy">לפרטים בהצהרת הפרטיות.</a> ברירת המחדל היא מאגר רכבים פעילים; מידע חדש או רכב לא פעיל עשויים להיות חסרים.</p></details>
       <PrivacyStatement />
       <AccessibilityStatement />
     </main>
     <AnalyticsConsent />
-    <footer><Brand footer /><p>{SLOGAN}</p><div className="footer-links"><a className="footer-privacy" href="#privacy">הצהרת פרטיות</a><a className="footer-privacy" href="#accessibility">נגישות האתר</a></div><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
+    <footer><Brand footer /><p>{SLOGAN}</p><div className="footer-links"><a className="footer-privacy" href="#faq">שאלות נפוצות</a><a className="footer-privacy" href="#privacy">הצהרת פרטיות</a><a className="footer-privacy" href="#accessibility">נגישות האתר</a></div><span>פרויקט עצמאי, ללא שיוך לטסלה או ל־BYD.</span></footer>
   </div>
 }
