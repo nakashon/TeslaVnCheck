@@ -62,9 +62,11 @@ The checker compares **model, factory, year and drivetrain**. A result such as
 certificate.** Original build configuration, the currently installed battery and
 a documented defect are separate questions.
 
-Registration year, VIN year and first-registration date are displayed separately.
-A late-2024 registration with a 2025 VIN year is not silently excluded: the
-disagreement is highlighted. **2024 is the end of the main research window, not a
+The Israeli registry's production year is authoritative whenever available,
+including in profile counts, shared pages and report images. The VIN year is a
+fallback only when the registry year is missing; a difference does not trigger
+a warning or conflict. First-registration date remains a separate field.
+**2024 is the end of the main research window, not a
 verified defective-batch cutoff.**
 
 Manufacturer documentation, homologation reporting and owner-submitted reports
@@ -212,7 +214,7 @@ code-to-battery-supplier mapping.
 | `candidate` | All four characteristics match, with no overriding conflict or unresolved CoC variant |
 | `document-supported` | The profile matches and the user entered exact CoC variant `Y7CR` |
 | `outside` | A known characteristic differs, without an overriding evidence conflict |
-| `conflicting` | VIN, registration or CoC evidence disagrees |
+| `conflicting` | Factory, drivetrain or CoC evidence disagrees; differing VIN/registry years are not a conflict |
 | `unknown` | Evidence or supported decoding is insufficient |
 
 `probability` remains `null`: there is no representative labeled fleet dataset

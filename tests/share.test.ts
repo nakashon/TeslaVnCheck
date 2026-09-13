@@ -51,7 +51,7 @@ test('extraneous untrusted fields are not propagated to the public report', () =
   const report = createReport(vin, 'unknown', 'no')
   assert.deepEqual(parseReport(encoded({ ...report, fullVin: vin, owner: '<script>test</script>', validated: true })), report)
 })
-test('v3 shared reports preserve registration conflicts without carrying a plate or full VIN', () => {
+test('shared reports use the Israeli year without carrying a plate or full VIN', () => {
   const vin = 'XP7YGCES0SB123456'
   const report = createReport(vin, 'unknown', 'unknown', null, { year: 2024, drive: 'rwd' })
   assert.equal(report.version, 3)
@@ -59,10 +59,16 @@ test('v3 shared reports preserve registration conflicts without carrying a plate
   assert.ok(parsed)
   assert.deepEqual(parsed, report)
   const result = assess(parsed.prefix + '000000', parsed.variant, parsed.replacement, parsed.registration)
-  assert.equal(result.status, 'conflicting')
+  assert.equal(result.status, 'candidate')
   assert.equal(result.profileYear, 2024)
   assert.equal(result.decoded.year, 2025)
   assert.equal(result.profileDrive, 'rwd')
+  assert.equal(result.profileMatch.matched, 4)
+  const legacy = { ...report, version: 2 }
+  delete legacy.batteryEvidence
+  const parsedLegacy = parseReport(encoded(legacy))
+  assert.ok(parsedLegacy)
+  assert.equal(assess(parsedLegacy.prefix + '000000', parsedLegacy.variant, parsedLegacy.replacement, parsedLegacy.registration).status, 'candidate')
   assert.ok(!JSON.stringify(parsed).includes('123456'))
 })
 test('legacy reports remain readable; unsupported versions or invalid evidence are rejected', () => {

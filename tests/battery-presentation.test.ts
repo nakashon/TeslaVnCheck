@@ -37,12 +37,20 @@ test('other CoC codes alone do not confirm current pack identity or receive blue
   assert.equal(batteryPresentation(assess('LRWYGCFR0PC123456'), 'no').tone, 'clear')
 })
 
-test('replacement does not erase conflicting model evidence', () => {
-  const result = assess('XP7YGCES0SB123456', 'unknown', 'yes', { year: 2024, drive: 'rwd' })
+test('replacement does not erase conflicting drivetrain evidence', () => {
+  const result = assess(vin, 'unknown', 'yes', { year: 2024, drive: 'awd' })
   assert.equal(batteryPresentation(result, 'yes', 'replacement-invoice').tone, 'updated')
   assert.equal(result.status, 'conflicting')
-  assert.equal(result.yearConflict, true)
+  assert.equal(result.driveConflict, true)
   assert.equal(result.profileMatch.matched, 3)
+})
+
+test('replacement reports use the Israeli year and retain the complete original model match', () => {
+  const result = assess('XP7YGCES0SB123456', 'unknown', 'yes', { year: 2024, drive: 'rwd' })
+  assert.equal(batteryPresentation(result, 'yes', 'replacement-invoice').tone, 'updated')
+  assert.equal(result.profileYear, 2024)
+  assert.equal(result.status, 'candidate')
+  assert.equal(result.profileMatch.matched, 4)
 })
 
 test('shared links reconstruct the same battery presentation as the original lookup', () => {

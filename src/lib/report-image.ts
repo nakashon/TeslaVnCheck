@@ -43,7 +43,6 @@ export async function renderReportImage(report: SharedReport, link: string): Pro
   text(result.decoded.model ?? 'Tesla', 1016, 267, 58, '#191b22', true)
   const factory = ({ Berlin: 'ברלין', Shanghai: 'שנגחאי', Fremont: 'פרימונט', Austin: 'אוסטין' }[result.decoded.factory ?? '']) ?? 'מפעל לא ידוע'
   text(`${factory}  ·  ${result.profileYear ?? 'שנה לא ידועה'}`, 1016, 322, 31, '#666b77')
-  if (result.yearConflict) text(`שנת ייצור בנתונים ששותפו: ${result.registration?.year} · שנת VIN: ${result.decoded.year}`, 1016, 353, 22, '#a45e06')
   context.fillStyle = background
   context.fillRect(64, 367, 952, 330)
   context.fillStyle = color

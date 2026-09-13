@@ -76,7 +76,7 @@ test('outcome colors are distinct and do not use a green theme for target profil
   assert.equal(assessmentTone('unknown'), 'uncertain')
   assert.equal(assessmentTone('conflicting'), 'uncertain')
 })
-test('late-year registration/VIN mismatch cannot exclude a Berlin RWD or silently overwrite a year', () => {
+test('Israeli registry year takes precedence over the VIN year without a conflict', () => {
   const vin = 'XP7YGCES0SB000001'
   const result = assess(vin, 'unknown', 'unknown', registrationEvidence(2024, 'RWD'))
   assert.equal(result.decoded.year, 2025)
@@ -84,11 +84,26 @@ test('late-year registration/VIN mismatch cannot exclude a Berlin RWD or silentl
   assert.equal(result.profileYear, 2024)
   assert.equal(result.decoded.drive, 'unknown')
   assert.equal(result.profileDrive, 'rwd')
-  assert.equal(result.yearConflict, true)
-  assert.equal(result.status, 'conflicting')
-  assert.equal(assessmentTone(result.status), 'uncertain')
-  assert.deepEqual(result.profileMatch, { matched: 3, different: 0, unknown: 1, total: 4 })
-  assert.equal(assess(vin, 'Y7CR', 'no', registrationEvidence(2024, 'RWD')).status, 'conflicting')
+  assert.equal(result.status, 'candidate')
+  assert.equal(assessmentTone(result.status), 'attention')
+  assert.deepEqual(result.profileMatch, { matched: 4, different: 0, unknown: 0, total: 4 })
+  assert.ok(!result.reasons.includes('registration_year_conflict'))
+  assert.equal(assess(vin, 'Y7CR', 'no', registrationEvidence(2024, 'RWD')).status, 'document-supported')
+})
+test('registry year precedence applies in both directions; VIN year is only a fallback', () => {
+  const older = assess(berlin, 'unknown', 'unknown', registrationEvidence(2022, 'RWD'))
+  assert.equal(older.profileYear, 2022)
+  assert.equal(older.status, 'outside')
+  assert.equal(older.criteria.find(item => item.id === 'year')?.match, false)
+  const newer = assess(berlin, 'unknown', 'unknown', registrationEvidence(2025, 'RWD'))
+  assert.equal(newer.profileYear, 2025)
+  assert.equal(newer.status, 'unknown')
+  assert.equal(newer.criteria.find(item => item.id === 'year')?.match, null)
+  for (const registration of [null, registrationEvidence(null, 'RWD')]) {
+    const fallback = assess(berlin, 'unknown', 'unknown', registration)
+    assert.equal(fallback.profileYear, fallback.decoded.year)
+    assert.equal(fallback.status, 'candidate')
+  }
 })
 test('post-2024 years alone are unresolved, not a verified supplier or defect cutoff', () => {
   for (const code of ['S', 'T']) {
