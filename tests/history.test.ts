@@ -1,12 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { lookupMileage, lookupOwnership, OWNERSHIP_RESOURCE, MILEAGE_RESOURCE } from '../src/lib/history.ts'
+import { lookupMileage, lookupOwnership, OWNERSHIP_RESOURCE, MILEAGE_RESOURCE, HISTORY_SOURCE_URL } from '../src/lib/history.ts'
 import { LookupError } from '../src/lib/govil.ts'
 
 const plate = 12345678
 const owner = { _id: 1, mispar_rechev: plate, baalut_dt: 202305, baalut: 'פרטי' }
 const mileage = { _id: 1, mispar_rechev: plate, kilometer_test_aharon: 54321, rishum_rishon_dt: '2023-05', mkoriut_nm: 'פרטי', shinui_mivne_ind: 0, gapam_ind: null, shnui_zeva_ind: 1, shinui_zmig_ind: 0 }
 const invalid = (error: unknown) => error instanceof LookupError && error.code === 'upstream_invalid'
+
+test('history source links to the current Hebrew public dataset page', () => {
+  assert.equal(HISTORY_SOURCE_URL, 'https://data.gov.il/he/datasets/ministry_of_transport/shinui_mivne')
+})
+
 function mock(rows: unknown[], extra: Record<string, unknown> = {}): typeof fetch {
   return async input => {
     const url = new URL(String(input))

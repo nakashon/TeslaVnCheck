@@ -2,7 +2,7 @@ import { normalizePlate } from './checker.ts'
 import { GOV_API, LookupError, loadGovResult, resourceUpdatedAt } from './govil.ts'
 
 export const RECALL_RESOURCE = '36bf1404-0be4-49d2-82dc-2f1ead4a8b93'
-export const RECALL_SOURCE_URL = `https://data.gov.il/dataset/9a7bd490-2daf-4168-b930-665981e54250/resource/${RECALL_RESOURCE}`
+export const RECALL_SOURCE_URL = 'https://data.gov.il/he/datasets/ministry_of_transport/hagbalat_recall'
 const fields = ['_id', 'MISPAR_RECHEV', 'RECALL_ID', 'TEUR_TAKALA', 'TAARICH_PTICHA', 'SUG_TAKALA']
 const pageSize = 100
 const maximumRecords = 1_000

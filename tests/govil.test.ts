@@ -1,10 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { lookupPlate, LookupError, ACTIVE_RESOURCE } from '../src/lib/govil.ts'
+import { lookupPlate, LookupError, ACTIVE_RESOURCE, ACTIVE_SOURCE_URL } from '../src/lib/govil.ts'
 
 const record = { mispar_rechev: 12345678, misgeret: 'XP7YGCFR0PB000001', tozeret_nm: 'Tesla Germany', kinuy_mishari: 'MODEL Y', shnat_yitzur: 2023, degem_cd: 163, horaat_rishum: 230432, baalut: 'פרטי', moed_aliya_lakvish: '2023-05', mivchan_acharon_dt: '2026-05-10' }
 const mock = (body: unknown, status = 200): typeof fetch => async () => new Response(JSON.stringify(body), { status })
 const errorCode = (code: string) => (error: unknown) => error instanceof LookupError && error.code === code
+
+test('vehicle source links to the current Hebrew public dataset page', () => {
+  assert.equal(ACTIVE_SOURCE_URL, 'https://data.gov.il/he/datasets/ministry_of_transport/private-and-commercial-vehicles')
+})
 
 test('uses CarAgent resource, VIN mapping, minimal fields and privacy-preserving browser options', async () => {
   const request: typeof fetch = async (input, options) => {

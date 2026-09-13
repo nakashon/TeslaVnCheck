@@ -3,7 +3,7 @@ import { GOV_API, loadGovResult, LookupError, resourceUpdatedAt } from './govil.
 
 export const OWNERSHIP_RESOURCE = 'bb2355dc-9ec7-4f06-9c3f-3344672171da'
 export const MILEAGE_RESOURCE = '56063a99-8a3e-4ff4-912e-5966c0279bad'
-export const HISTORY_SOURCE_URL = 'https://data.gov.il/dataset/273c5e33-25ab-4980-8522-a2f7ba0bb62d'
+export const HISTORY_SOURCE_URL = 'https://data.gov.il/he/datasets/ministry_of_transport/shinui_mivne'
 
 export interface OwnershipEntry {
   id: string

@@ -46,7 +46,7 @@ test('uses verified uppercase schema, minimal fields, stable pagination and priv
   assert.equal(result.truncated, false)
   assert.equal(result.dataUpdatedAt, metadata.result.last_modified)
   assert.ok(Number.isFinite(Date.parse(result.checkedAt)))
-  assert.ok(RECALL_SOURCE_URL.includes(RECALL_RESOURCE))
+  assert.equal(RECALL_SOURCE_URL, 'https://data.gov.il/he/datasets/ministry_of_transport/hagbalat_recall')
   assert.equal(calls, 2)
 })
 
