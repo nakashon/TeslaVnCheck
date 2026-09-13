@@ -98,9 +98,11 @@ a historical mileage series. Registration-change flags are not accident reports.
 The production build prerenders the public homepage into HTML, including the
 battery explanation, sources, privacy statement and Hebrew FAQ. Readers and
 crawlers do not need JavaScript to read that content. Interactive vehicle lookup
-still requires JavaScript. The browser replaces the static React markup rather
-than hydrating it, because shared-report fragments and analytics consent are
-browser-only state. The build makes no vehicle lookups and runs no analytics.
+still requires JavaScript. The browser hydrates the public React markup,
+preserving keyboard focus while the application loads. Direct shared-report
+fragments mount separately because their vehicle state exists only in the
+browser. Analytics consent is applied after mounting, not during the build.
+The build makes no vehicle lookups and runs no analytics.
 
 `src/lib/seo.ts` supplies both the visible FAQ and its JSON-LD, alongside the
 site, independent publisher and free web-application entities. JSON-LD is

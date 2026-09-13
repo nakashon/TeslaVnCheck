@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { test, expect } from '@playwright/test'
+import type { Route } from '@playwright/test'
 import { FAQS, SITE_CANON, SITE_URL, STRUCTURED_DATA, renderLlmsText } from '../src/lib/seo.ts'
 import { createReport, reportLink } from '../src/lib/share.ts'
 
@@ -55,9 +56,10 @@ test('without JavaScript, visitors can read the same FAQ answers and government 
   }
 })
 
-test('built homepage replaces static content with working input and fragment-based reports', async ({ page }) => {
+test('built homepage hydrates with working input and separately mounts fragment-based reports', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   const externalRequests: string[] = []
   await page.route(/https:\/\/(?:data\.gov\.il|[^/]*google-analytics\.com|www\.googletagmanager\.com)\//, route => {
     externalRequests.push(route.request().url())
@@ -85,4 +87,21 @@ test('built homepage replaces static content with working input and fragment-bas
   await expect(page.locator('#battery-profile')).toBeInViewport()
   expect(externalRequests).toEqual([])
   expect(errors).toEqual([])
+})
+
+test('keyboard focus survives loading the app after a visitor tabs into the static page', async ({ page }) => {
+  const modules: Route[] = []
+  await page.route('**/assets/index-*.js', route => { modules.push(route) })
+  await page.goto('/', { waitUntil: 'commit' })
+  await expect(page.locator('.skip-link')).toBeAttached()
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.skip-link')).toBeFocused()
+  await expect.poll(() => modules.length).toBe(1)
+  await modules[0].continue()
+  await page.waitForLoadState('load')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#identifier')).toBeFocused()
+  await page.keyboard.type('12345678')
+  await expect(page.locator('#identifier')).toHaveValue('12345678')
+  await expect(page.locator('button[type=submit]')).toBeEnabled()
 })

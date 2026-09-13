@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { createElement } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { renderToString } from 'react-dom/server'
 import { createServer } from 'vite'
 import { SITE_CANON, STRUCTURED_DATA, renderLlmsText } from '../src/lib/seo.ts'
 
@@ -12,7 +12,7 @@ const server = await createServer({
 
 try {
   const { default: App } = await server.ssrLoadModule('/src/App.tsx')
-  const markup = renderToStaticMarkup(createElement(App))
+  const markup = renderToString(createElement(App))
   const json = JSON.stringify(STRUCTURED_DATA).replace(/</g, '\\u003c')
   const hash = createHash('sha256').update(json).digest('base64')
   const file = new URL('../dist/index.html', import.meta.url)
